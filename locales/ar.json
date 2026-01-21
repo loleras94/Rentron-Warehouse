@@ -1,0 +1,670 @@
+{
+  "common": {
+    "loading": "جارٍ التحميل...",
+    "error": "خطأ",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "confirm": "تأكيد",
+    "close": "إغلاق",
+    "edit": "تعديل",
+    "quantity": "الكمية",
+    "location": "الموقع",
+    "na": "غير متاح",
+    "material": "مادة",
+    "clear": "مسح",
+    "yes": "نعم",
+    "no": "لا",
+    "back": "رجوع",
+    "dash": "—",
+    "saving": "جارٍ الحفظ...",
+    "reset": "إعادة ضبط"
+  },
+  "header": {
+    "title": "تطبيق Rentron",
+    "welcome": "مرحبًا",
+    "logout": "تسجيل الخروج"
+  },
+  "roles": {
+    "manager": "مدير",
+    "operator": "مشغّل المواد",
+    "orderkeeper": "مسؤول الطلبات",
+    "machineoperator": "مشغّل الماكينة",
+    "infraoperator": "مشغّل البنية التحتية",
+    "storekeeper": "مشرف الإنتاج",
+    "framekeeper": "مسؤول الإطارات",
+    "warehousemanager": "مدير المستودع",
+    "materiallogger": "مسجل استهلاك المواد"
+  },
+  "tabs": {
+    "operator": "مسح QR للمادة",
+    "search": "بحث عن المواد",
+    "manager": "المدير",
+    "transactions": "حركات المواد",
+    "batch-create": "إنشاء QR للمواد",
+    "orders": "الطلبات",
+    "scan-product-sheet": "مسح QR للإنتاج",
+    "daily-logs": "السجلات اليومية",
+    "phase-manager": "مدير المراحل",
+    "pdf-import": "استيراد الطلبات من PDF",
+    "live-phases": "المراحل النشطة",
+    "account": "إعدادات الحساب",
+    "dead-time": "وقت التوقف",
+    "frames": "بحث الإطارات",
+    "material-use": "استهلاك المواد"
+  },
+  "login": {
+    "title": "تطبيق Rentron",
+    "subtitle": "يرجى تسجيل الدخول إلى حسابك",
+    "usernamePlaceholder": "اسم المستخدم",
+    "passwordPlaceholder": "كلمة المرور",
+    "signIn": "تسجيل الدخول"
+  },
+  "operator": {
+    "title": "إجراءات المشغّل",
+    "scanPrompt": "امسح رمز QR للمادة لعرض التفاصيل وتنفيذ الإجراءات.",
+    "startScannerButton": "بدء ماسح QR",
+    "cancelScanButton": "إلغاء المسح",
+    "scanErrorInvalidFormat": "تنسيق رمز QR غير صالح.",
+    "scanErrorParseFailed": "فشل تحليل رمز QR. ليس رمز مادة صالحًا.",
+    "materialConsumedError": "تم استهلاك المادة {{materialCode}} (المعرّف: {{id}}) بالكامل بالفعل.",
+    "materialNotFoundError": "المادة غير موجودة في قاعدة البيانات. يرجى تسجيلها أولًا.",
+    "materialDetailsTitle": "تفاصيل المادة",
+    "materialCode": "رمز المادة",
+    "id": "المعرّف",
+    "remainingQuantity": "الكمية المتبقية",
+    "chooseAction": "اختر إجراءً:",
+    "fullConsumption": "استهلاك كامل",
+    "placement": "تحديد موقع",
+    "movement": "نقل",
+    "partialConsumption": "استهلاك جزئي",
+    "actionsDisabledHint": "ملاحظة: يتم تعطيل الإجراءات حتى يتم تحديد موقع أولي للمادة.",
+    "scanAnother": "مسح مادة أخرى",
+    "adjustQuantity": "تعديل الكمية",
+    "adjustQuantityTitle": "تعديل كمية المادة",
+    "newTotalQuantity": "الكمية الإجمالية الجديدة",
+    "invalidQuantity": "يجب أن تكون الكمية رقمًا ≥ 0",
+    "quantityUpdated": "تم تحديث الكمية ✅",
+    "quantityUpdateFailed": "فشل تحديث الكمية"
+  },
+  "search": {
+    "title": "بحث عن المواد",
+    "placeholder": "أدخل رمز المادة...",
+    "loading": "جارٍ تحميل المواد...",
+    "noResults": "لم يتم العثور على مواد لـ \"{{searchTerm}}\".",
+    "showHistory": "عرض السجل",
+    "hideHistory": "إخفاء السجل",
+    "showQrCode": "عرض رمز QR",
+    "historyTitle": "سجل النقل/الاستهلاك",
+    "historyType": {
+      "CREATED": "تم الإنشاء",
+      "PLACED": "تم التحديد",
+      "MOVED": "تم النقل",
+      "CONSUMED": "تم الاستهلاك",
+      "PARTIALLY_CONSUMED": "تم الاستهلاك جزئيًا",
+      "ADJUSTED": "تم التعديل"
+    },
+    "historyDetails": {
+      "quantity": "الكمية: {{quantity}}",
+      "placedTo": "إلى: {{area}}، موضع {{position}}",
+      "movedFromTo": "من: {{fromArea}}، موضع {{fromPosition}} -> إلى: {{toArea}}، موضع {{toPosition}}",
+      "consumed": "رمز الإنتاج: {{productionCode}}، المستهلك: {{consumed}}",
+      "partiallyConsumed": "رمز الإنتاج: {{productionCode}}، المستهلك: {{consumed}}، المتبقي: {{remaining}}، الموقع الجديد: {{newLocationArea}}، موضع {{newLocationPosition}}",
+      "adjustedFromTo": "من: {{fromQty}} → إلى: {{toQty}}",
+      "adjusted": "تعديل: {{delta}}"
+    },
+    "showConsumed": "عرض المواد المستهلكة بالكامل",
+    "noAvailableResults": "لا توجد مواد متاحة لـ \"{{searchTerm}}\"."
+  },
+  "qrModal": {
+    "title": "ملصق المادة",
+    "printLabel": "طباعة الملصق"
+  },
+  "actionModal": {
+    "titles": {
+      "CONSUMPTION": "تسجيل استهلاك كامل",
+      "PLACEMENT": "تسجيل تحديد موقع",
+      "MOVEMENT": "تسجيل نقل",
+      "PARTIAL_CONSUMPTION": "تسجيل استهلاك جزئي وإعادة تموضع"
+    },
+    "confirmActionTitle": "تأكيد الإجراء",
+    "confirmMessage": "هل أنت متأكد أنك تريد المتابعة؟ لا يمكن التراجع عن هذا الإجراء.",
+    "action": "الإجراء",
+    "material": "المادة",
+    "consuming": "جارٍ الاستهلاك",
+    "units": "وحدات",
+    "yesConfirm": "نعم، تأكيد",
+    "confirming": "جارٍ التأكيد...",
+    "saving": "جارٍ الحفظ...",
+    "confirmButton": "تأكيد الإجراء",
+    "productionCodeLabel": "رمز الإنتاج / أمر العمل",
+    "productionCodeRequired": "رمز الإنتاج مطلوب.",
+    "newAreaLabel": "منطقة جديدة",
+    "newPositionLabel": "موضع جديد",
+    "sheetsConsumedLabel": "الصفائح المستهلكة (الحد الأقصى: {{max}})",
+    "invalidQuantity": "كمية غير صالحة. يجب أن تكون بين 1 و {{max}}.",
+    "newLocationForRemainder": "موقع جديد للكمية المتبقية"
+  },
+  "manager": {
+    "title": "إدارة المستخدمين",
+    "exportCsv": "تصدير CSV",
+    "createNewUser": "+ إنشاء مستخدم جديد",
+    "loading": "جارٍ تحميل المستخدمين...",
+    "languageSettings": {
+      "title": "إعدادات اللغة"
+    },
+    "table": {
+      "username": "اسم المستخدم",
+      "role": "الدور/الأدوار",
+      "allowedTabs": "علامات التبويب المسموح بها",
+      "lastLogin": "آخر تسجيل دخول",
+      "actions": "إجراءات"
+    },
+    "userModal": {
+      "editTitle": "تعديل المستخدم",
+      "createTitle": "إنشاء مستخدم جديد",
+      "usernameLabel": "اسم المستخدم",
+      "passwordLabel": "كلمة المرور",
+      "newPasswordLabel": "كلمة مرور جديدة (اختياري)",
+      "roleLabel": "الأدوار",
+      "nonRemovable": "غير قابل للإزالة",
+      "saveButton": "حفظ المستخدم",
+      "savingButton": "جارٍ الحفظ...",
+      "errorFillFields": "يرجى تعبئة جميع الحقول المطلوبة واختيار دور واحد على الأقل."
+    }
+  },
+  "batchCreate": {
+    "title": "إنشاء مواد دفعة واحدة",
+    "materialCodePlaceholder": "رمز المادة",
+    "quantityPlaceholder": "الكمية",
+    "addRow": "+ إضافة صف",
+    "saveAll": "حفظ الكل",
+    "saving": "جارٍ الحفظ...",
+    "generatedLabelsTitle": "الملصقات المُنشأة",
+    "printStickerLayout": "طباعة تخطيط الملصقات (ورقة A4)",
+    "printFullBleedLayout": "طباعة تخطيط بدون هوامش (ورقة A4)",
+    "pdf": {
+      "title": "استيراد من PDF",
+      "selected": "ملفات PDF المحددة",
+      "parseBtn": "تحليل ملفات PDF",
+      "parsing": "جارٍ التحليل...",
+      "found": "تم العثور على",
+      "codes": "رموز مواد",
+      "fillQtyHint": "تم ترك الكميات فارغة — قم بتعبئتها أدناه ثم انقر \"حفظ الكل\".",
+      "noMaterialsFound": "لم يتم العثور على مواد في هذا الـ PDF.",
+      "noMaterialsInAll": "لم يتم العثور على رموز مواد في ملفات الـ PDF المحددة.",
+      "parseFailed": "فشل تحليل PDF.",
+      "someFailed": "واجهت بعض ملفات PDF مشاكل:"
+    },
+    "needValidRow": "أضف صفًا واحدًا صالحًا على الأقل (رمز + كمية > 0)",
+    "saveRowFailed": "فشل إنشاء المادة {{code}}. قد تكون موجودة بالفعل أو حدث خطأ في الخادم."
+  },
+  "transactions": {
+    "title": "سجل المعاملات",
+    "loading": "جارٍ تحميل المعاملات...",
+    "noResults": "لم يتم العثور على أي حركات أو معاملات حديثة.",
+    "table": {
+      "id": "#",
+      "itemId": "معرّف العنصر",
+      "change": "التغيير",
+      "reason": "السبب",
+      "user": "المستخدم",
+      "date": "التاريخ",
+      "materialName": "المادة",
+      "location": "الموقع"
+    }
+  },
+  "orderkeeper": {
+    "lockedTag": "مقفلة",
+    "removePhase": "إزالة مرحلة",
+    "moveUp": "نقل للأعلى",
+    "moveDown": "نقل للأسفل",
+    "removeMaterial": "إزالة مادة",    
+    "title": "إنشاء طلب",
+    "modeLabel": "الوضع:",
+    "modes": {
+      "create": "إنشاء",
+      "update": "تحديث",
+      "reprint": "إعادة طباعة"
+    },
+    "changeMode": "تغيير الوضع",
+
+    "orderNumber": "رقم الطلب",
+    "orderNumberPlaceholder": "مثال: ORD-2024-001",
+    "currentOrder": "الطلب الحالي",
+    "changeOrder": "تغيير",
+    "productionSheets": "أوراق الإنتاج",
+    "sheetNumber": "رقم الورقة",
+    "productionSheetNumberLabel": "رقم ورقة الإنتاج",
+
+    "productId": "معرّف المنتج",
+    "quantity": "الكمية",
+
+    "materials": "المواد (لكل قطعة)",
+    "materialId": "معرّف المادة",
+    "qtyPerPiece": "كمية/قطعة",
+    "addMaterial": "إضافة مادة",
+
+    "phases": "المراحل (لكل قطعة)",
+    "phaseId": "المرحلة",
+    "position": "الموضع",
+
+    "labels": {
+      "setupPerPhase": "التهيئة (لكل مرحلة)",
+      "prodPerPiece": "الإنتاج (لكل قطعة)"
+    },
+    "units": {
+      "minutes": "دقيقة"
+    },
+    "placeholders": {
+      "totalQty": "الكمية الإجمالية",
+      "setupMinutes": "التهيئة (دقيقة)",
+      "totalMinutes": "الإجمالي (دقيقة)",
+      "position": "مثال: 50"
+    },
+
+    "addPhase": "إضافة مرحلة",
+    "addSheet": "+ إضافة ورقة إنتاج",
+    "saveOrder": "حفظ الطلب والحصول على QR",
+    "saving": "جارٍ الحفظ...",
+
+    "printAllQRs": "طباعة رموز QR لكل أوراق الإنتاج",
+    "orderCompletePrompt": "تم حفظ الطلب. هل تريد طباعة رموز QR لجميع أوراق الإنتاج؟",
+
+    "editTitle": "تعديل ورقة الإنتاج",
+    "reprintTitle": "إعادة طباعة QR للطلب: {{orderNumber}}",
+    "noSheetsFound": "لم يتم العثور على أوراق إنتاج لهذا الطلب.",
+
+    "printOptions": "خيارات الطباعة",
+    "printSelected": "طباعة المحدد",
+    "printAll": "طباعة الكل",
+    "selectedCountSuffix": "محدد",
+    "totalCountSuffix": "الإجمالي",
+
+    "sheetNumberHeader": "ورقة #",
+    "productIdHeader": "معرّف المنتج",
+    "quantityHeader": "الكمية",
+
+    "alerts": {
+      "updatedSuccess": "تم تحديث الطلب بنجاح.",
+      "updatedLockedPhases": "تم التحديث، لكن بعض المراحل كانت مقفلة (بدأت بالفعل): {{phases}}",
+      "saveFailed": "فشل حفظ الطلب: {{message}}",
+      "materialsLocked": "المواد مقفلة"
+    },
+    "errors": {
+      "noSheetsForOrder": "لم يتم العثور على أوراق إنتاج لهذا الطلب."
+    }
+  },
+  "machineOperator": {
+    "title": "تتبع مراحل الإنتاج",
+    "scanPrompt": "امسح رمز QR لورقة الإنتاج للبدء.",
+    "startScan": "بدء المسح",
+    "sheetDetails": "تفاصيل الورقة",
+    "orderNum": "الطلب",
+    "sheetNum": "الورقة",
+    "product": "المنتج",
+    "qty": "الكمية",
+    "phases": "المراحل",
+    "status": "الحالة",
+    "completed": "مكتمل",
+    "notStarted": "لم يبدأ",
+    "inProgress": "قيد التنفيذ",
+    "startPhase": "بدء المرحلة",
+    "finishFull": "إنهاء الدفعة بالكامل",
+    "finishPartial": "إنهاء جزئي",
+    "startMaterialFind": "بدء البحث عن المادة",
+    "materialFound": "تم العثور على المادة",
+    "findingMaterial": "جارٍ البحث عن المادة...",
+    "phaseInProgress": "المرحلة قيد التنفيذ",
+    "enterPartialQty": "أدخل الكمية المُنجزة",
+    "quantityDone": "الكمية المُنجزة",
+    "maxQty": "الحد الأقصى",
+    "submit": "إرسال",
+    "materialInfo": "معلومات المادة",
+    "consumeNowTitle": "استهلاك المادة الآن؟",
+    "consumeNowMessage": "لقد أنهيت الإنتاج. هل تريد استهلاك المادة الآن؟",
+    "selectMaterialTitle": "اختر مادة لاستهلاكها",
+    "selectMaterialHint": "الكمية المُنجزة: {{qty}} (المرحلة {{phaseId}})",
+    "noMaterialsTitle": "لا توجد مواد",
+    "noMaterialsMessage": "لا توجد مواد متاحة للاختيار لهذا المنتج.",
+    "consumeActionTitle": "إجراء الاستهلاك",
+    "partialConsumptionRelocate": "استهلاك جزئي + نقل",
+    "fullConsumption": "استهلاك كامل",
+    "cancel": "إلغاء"
+  },
+  "infraOperator": {
+    "title": "سجل العمليات اليومية",
+    "selectDate": "اختر تاريخًا لإنشاء التقرير:",
+    "exportExcel": "تصدير التقرير اليومي (Excel)",
+    "exportMaterialUseExcel": "تصدير استخدام المواد اليومي (Excel)",
+    "exportError": "حدث خطأ أثناء التصدير.",
+    "noDataForDate": "لا توجد بيانات لـ {{date}}.",
+    "noMaterialUseForDate": "لا توجد بيانات لاستخدام المواد لـ {{date}}.",
+    "excel": {
+      "sheetNameDailyReport": "التقرير اليومي",
+      "type": {
+        "phase": "مرحلة",
+        "deadTime": "وقت توقف"
+      },
+      "dead90Description": "وقت العثور على المادة",
+      "headers": {
+        "type": "النوع",
+        "operatorUsername": "اسم مستخدم المشغّل",
+        "orderNumber": "رقم الطلب",
+        "productionSheetNumber": "رقم ورقة الإنتاج",
+        "productId": "معرّف المنتج",
+        "position": "الموضع",
+        "setupTime": "وقت التجهيز",
+        "productionTime": "وقت الإنتاج",
+        "quantityDone": "الكمية المُنجزة",
+        "deadDescription": "وصف التوقف",
+        "startTimeLocal": "وقت البدء (محلي)",
+        "endTimeLocal": "وقت الانتهاء (محلي)"
+      }
+    },
+    "materialUseExcel": {
+      "sheetName": "استخدام المواد اليومي",
+      "headers": {
+        "order": "الطلب",
+        "material": "المادة",
+        "quantity": "الكمية",
+        "unit": "الوحدة"
+      },
+      "values": {
+        "sample": "عينة",
+        "remnant": "متبقّي"
+      }
+    }
+  },
+  "account": {
+    "title": "إعدادات الحساب",
+    "language": "اختر لغة التطبيق",
+    "changePassword": "تغيير كلمة المرور",
+    "oldPassword": "اكتب كلمة المرور القديمة هنا.",
+    "newPassword": "اكتب كلمة المرور الجديدة هنا.",
+    "confirmPassword": "تأكيد كلمة المرور الجديدة.",
+    "savePassword": "حفظ كلمة المرور الجديدة."
+  },
+  "frames": {
+    "title": "الإطارات",
+    "loading": "جارٍ تحميل الإطارات...",
+    "frame": "إطار",
+    "qr": {
+      "containsOnly": "يحتوي رمز QR فقط على"
+    },
+    "alert": {
+      "enterFrameIds": "أدخل معرّف إطار واحد أو أكثر (مثال: 1,2,3-6)."
+    },
+    "scan": {
+      "button": "مسح إطار",
+      "title": "مسح QR",
+      "scanned": "تم المسح",
+      "help": "وجّه الكاميرا إلى QR الخاص بالإطار. سيتم فتح محرر ذلك الإطار تلقائيًا.",
+      "notSupported": "مسح QR غير مدعوم في هذا المتصفح. استخدم Chrome (Android) أو جهازًا/متصفحًا يدعم BarcodeDetector.",
+      "permissionDenied": "تم رفض إذن الكاميرا أو غير متاح."
+    },
+    "createPrint": {
+      "title": "إنشاء / طباعة ملصقات الإطارات",
+      "frameIdsPlaceholder": "معرّفات الإطارات (مثال: 1,2,3-6 10)",
+      "createOnly": "إنشاء إطار/إطارات + QR",
+      "createAndPrintStickers": "إنشاء وطباعة ملصقات",
+      "createAndPrintFull": "إنشاء وطباعة بدون هوامش",
+      "printAllStickers": "طباعة تخطيط الملصقات (الكل)",
+      "printAllFull": "طباعة بدون هوامش (الكل)"
+    },
+    "print": {
+      "title": "طباعة ملصقات QR للإطارات",
+      "chromeWarning": "هام: للمحاذاة المثالية في Chrome، عطّل خيار \"الرؤوس والتذييلات\" في نافذة إعدادات الطباعة."
+    },
+    "filters": {
+      "title": "تصفية الإطارات",
+      "showing": "عرض",
+      "productId": "معرّف المنتج",
+      "productIdPlaceholder": "اكتب معرّف المنتج",
+      "productHelp": "يعرض الإطارات التي تتضمن هذا معرّف المنتج.",
+      "minWidth": "الحد الأدنى للعرض (سم)",
+      "minWidthPlaceholder": "مثال: 30",
+      "minHeight": "الحد الأدنى للارتفاع (سم)",
+      "minHeightPlaceholder": "مثال: 40",
+      "clear": "مسح عوامل التصفية",
+      "clearAndJump": "مسح + الانتقال إلى الممسوح",
+      "noResults": "لا توجد إطارات تطابق عوامل التصفية الحالية.",
+      "quality": "الجودة"
+    },
+    "fields": {
+      "position": "الموضع",
+      "quality": "الجودة",
+      "size": "المقاس",
+      "positionLabel": "الموضع (1-17)",
+      "qualityLabel": "الجودة",
+      "widthLabel": "العرض (سم)",
+      "heightLabel": "الارتفاع (سم)"
+    },
+    "products": {
+      "inputLabel": "المنتجات المضمنة (اكتب الأكواد)",
+      "placeholder": "مثال: PRD001, PRD002 PRD003",
+      "saved": "تم الحفظ",
+      "unknownWarning": "بعض أكواد المنتجات غير معروفة (غير موجودة في قائمة المنتجات) — تم الحفظ على أي حال."
+    }
+  },
+  "materialUse": {
+    "title": "تسجيل استخدام المواد",
+    "registerFor": "تسجيل لـ",
+    "entryType": {
+      "productionSheet": "ورقة إنتاج",
+      "sample": "عينة"
+    },
+    "qr": {
+      "title": "مسح / لصق QR لورقة المنتج",
+      "scanWithCamera": "المسح بالكاميرا",
+      "stopCamera": "إيقاف الكاميرا",
+      "cameraHint": "وجّه الكاميرا إلى رمز QR. سيتم اكتشافه تلقائيًا.",
+      "placeholder": "الصق محتوى QR هنا",
+      "load": "تحميل",
+      "loading": "جارٍ التحميل...",
+      "errors": {
+        "pasteFirst": "الصق/امسح نص QR أولًا.",
+        "loadFailed": "فشل تحميل ورقة الإنتاج",
+        "cameraNotSupported": "الكاميرا غير مدعومة في هذا المتصفح/الجهاز.",
+        "barcodeDetectorNotSupported": "مسح QR غير مدعوم في هذا المتصفح (BarcodeDetector غير موجود). استخدم Chrome/Android أو متصفحًا متوافقًا.",
+        "permissionDenied": "تم رفض إذن الكاميرا أو غير متاح."
+      }
+    },
+    "sheetInfo": {
+      "sheet": "الورقة",
+      "product": "المنتج",
+      "qty": "الكمية"
+    },
+    "materialOption": "خيار المادة",
+    "source": {
+      "sheet": "استخدام المادة من ورقة المنتج",
+      "remnant": "متبقّي",
+      "manual": "إدخال يدوي لرمز المادة"
+    },
+    "fields": {
+      "material": "المادة",
+      "selectMaterial": "اختر مادة",
+      "materialPlaceholder": "رمز المادة",
+      "quantity": "الكمية",
+      "quantityPlaceholder": "مثال: 2.5",
+      "unit": "الوحدة"
+    },
+    "saveEntry": "حفظ الإدخال",
+    "saved": "تم الحفظ ✅",
+    "errors": {
+      "sampleCannotUseSheet": "لا يمكن للعينة استخدام قائمة مواد ورقة المنتج.",
+      "scanFirst": "قم بمسح/تحميل ورقة إنتاج أولًا.",
+      "missingSheetNumber": "رقم ورقة الإنتاج مفقود.",
+      "selectMaterial": "اختر مادة.",
+      "qtyPositive": "يجب أن تكون الكمية > 0",
+      "enterMaterialCode": "أدخل رمز المادة.",
+      "saveFailed": "فشل الحفظ",
+      "loadSheetToUseSheetMaterials": "قم بتحميل ورقة إنتاج لاستخدام “مواد الورقة”."
+    }
+  },
+  "deadTime": {
+    "title": "وقت التوقف",
+    "activeDeadTitle": "وقت توقف نشط",
+    "activePhaseTitle": "وقت مرحلة نشط",
+    "labels": {
+      "code": "الرمز",
+      "sheet": "الورقة",
+      "product": "المنتج",
+      "time": "الوقت",
+      "phase": "المرحلة",
+      "running": "المدة",
+      "selectCode": "اختر الرمز",
+      "productManual": "معرّف المنتج (يدوي)",
+      "scanQrOptional": "مسح QR (اختياري)",
+      "scannedSheet": "الورقة الممسوحة",
+      "scannedProduct": "المنتج"
+    },
+    "buttons": {
+      "startScanner": "بدء الماسح",
+      "closeScanner": "إغلاق الماسح",
+      "startDeadTime": "بدء وقت التوقف",
+      "finish": "إنهاء"
+    },
+    "select": {
+      "placeholder": "-- اختر --"
+    },
+    "messages": {
+      "requireManualProduct": "هذا الرمز يتطلب معرّف منتج يُدخل يدويًا.",
+      "requireProductOrScan": "هذا الرمز يتطلب منتجًا، إما عبر مسح QR أو إدخال معرّف المنتج يدويًا.",
+      "cannotStartWhilePhaseRunning": "لا يمكنك بدء وقت التوقف أثناء تشغيل مرحلة. قم بإنهائها من تبويب مشغل الماكينة."
+    },
+    "errors": {
+      "requiredDetails": "يرجى إدخال تفاصيل المنتج المطلوبة / تفاصيل المسح.",
+      "alreadyActiveDead": "لديك بالفعل وقت توقف نشط.",
+      "activePhaseRunning": "لديك وقت مرحلة نشط. قم بإنهائه قبل بدء وقت التوقف.",
+      "readQrFailed": "فشل في قراءة QR",
+      "startFailed": "فشل في بدء وقت التوقف",
+      "finishFailed": "فشل في إنهاء وقت التوقف"
+    },
+    "codes": {
+      "10": "نقص المواد",
+      "20": "نقص العمل",
+      "30": "أعمال مساعدة",
+      "40": "عطل في الماكينة",
+      "50": "صيانة - ركتيفييه",
+      "60": "إنتاج عيّنة",
+      "70": "مشاكل جودة",
+      "80": "إعادة تصنيع",
+      "90": "تحميل/تفريغ/نقل المواد",
+      "100": "إخراج من الفرن",
+      "110": "حوامل (RACKS)",
+      "120": "قص المواد",
+      "130": "تغليف للفاسون",
+      "140": "أعمال نقل للفرن",
+      "150": "عمل إضافي لأمر الإنتاج",
+      "160": "تدريب - اجتماعات",
+      "170": "نقص أداة",
+      "180": "ملصقات بدون أمر"
+    }
+  },
+  "livePhases": {
+    "title": "مراحل العمل المباشرة",
+
+    "activeNow": "نشط الآن",
+    "activeDeadTime": "وقت التوقف النشط",
+    "idleUsers": "المستخدمون غير النشطين",
+
+    "user": "المستخدم",
+    "sheet": "الورقة",
+    "product": "المنتج",
+    "phase": "المرحلة",
+    "status": "الحالة",
+    "running": "المدة",
+    "planned": "المخطط",
+    "actual": "الفعلي",
+    "overrun": "تجاوز!",
+
+    "code": "الرمز",
+    "lastSheet": "آخر ورقة",
+    "lastPhase": "آخر مرحلة",
+    "lastWorkDeadTime": "آخر عمل: وقت توقف",
+    "finished": "انتهى",
+    "idle": "خامل",
+
+    "minutes": "دقيقة",
+    "invalidDate": "تاريخ غير صالح"
+  },
+  "phaseManager": {
+    "title": "إدارة المراحل",
+    "loadingError": "فشل تحميل المراحل.",
+    "addNewTitle": "إضافة مرحلة جديدة",
+    "fields": {
+      "code": "الكود",
+      "name": "الاسم"
+    },
+    "placeholders": {
+      "code": "كود المرحلة (مثال: cutting)",
+      "name": "اسم المرحلة (مثال: Cutting)"
+    },
+    "listTitle": "المراحل الحالية",
+    "table": {
+      "code": "الكود",
+      "name": "الاسم",
+      "actions": "الإجراءات"
+    },
+    "confirmDelete": "هل تريد حذف هذه المرحلة؟",
+    "buttons": {
+      "save": "حفظ",
+      "edit": "تعديل",
+      "delete": "حذف"
+    }
+  },
+  "pdfImport": {
+    "title": "استيراد طلب من PDF",
+    "fileLabel": "ملف PDF",
+    "buttons": {
+      "parsePdf": "تحليل PDF",
+      "parsing": "جاري التحليل...",
+      "createAllSheets": "إنشاء كل أوامر الإنتاج",
+      "saving": "جاري الحفظ...",
+      "printPdf": "طباعة PDF",
+      "createPdfWithQr": "إنشاء PDF مع QR",
+      "working": "جاري المعالجة...",
+      "printMaterialTicketsSticker": "طباعة تذاكر المواد (Sticker)",
+      "printMaterialTicketsFull": "طباعة تذاكر المواد (Full)",
+      "printStickerLayout": "طباعة تخطيط Sticker",
+      "printFullLayout": "طباعة التخطيط الكامل",
+      "close": "إغلاق"
+    },
+    "errors": {
+      "parseFailed": "فشل تحليل PDF",
+      "createSheetsFailed": "فشل إنشاء أوامر الإنتاج",
+      "sheetConflicts": "أرقام الأوامر موجودة بالفعل لهذا الطلب: {{numbers}}",
+      "noSheetsForOrder": "لم يتم العثور على أو إنشاء أوامر إنتاج لهذا الطلب.",
+      "createPdfWithQrFailed": "فشل إنشاء PDF مع QR"
+    },
+    "parsed": {
+      "title": "تم تحليل الطلب",
+      "orderNumber": "رقم الطلب",
+      "productsTitle": "المنتجات في هذا الـ PDF",
+      "sheetNumber": "رقم أمر الإنتاج",
+      "productId": "معرّف المنتج",
+      "quantity": "الكمية",
+      "materialsTitle": "المواد",
+      "phasesTitle": "المراحل",
+      "perPiece": "لكل قطعة",
+      "phaseLine": "المرحلة {{phaseId}}: إعداد {{setup}} دقيقة، إنتاج {{prod}} دقيقة/قطعة، الموضع: {{pos}}",
+      "positionNotAssigned": "غير محدد"
+    },
+    "materialTickets": {
+      "title": "تذاكر المواد (labels)",
+      "found": "تم العثور على {{count}} تذكرة."
+    },
+    "created": {
+      "title": "تم إنشاء الأوامر بنجاح!",
+      "line": "أمر {{sheet}} — منتج {{product}} — كمية {{qty}}"
+    },
+    "printWindows": {
+      "printProductionSheetsTitle": "طباعة أوامر الإنتاج",
+      "printMaterialTicketsTitle": "طباعة تذاكر المواد",
+      "printPdfTitle": "طباعة PDF"
+    }
+  }
+}
+
+
+

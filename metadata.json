@@ -1,0 +1,7 @@
+{
+  "name": "Warehouse Material / Production App",
+  "description": "A comprehensive application for tracking warehouse materials using QR codes. It allows storekeepers to register materials and generate QR codes, and operators to scan these codes to log consumption, placement, and movement of materials. Includes a search function to track material history and location.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
