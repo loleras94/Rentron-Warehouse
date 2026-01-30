@@ -18,10 +18,13 @@
     "back": "Πίσω",
     "dash": "—",
     "saving": "Αποθήκευση..."    ,
-    "reset": "Επαναφορά"
+    "reset": "Επαναφορά",
+    "ok": "ΟΚ",
+    "position": "Θέση",
+    "add": "Προσθήκη" 
   },
   "header": {
-    "title": "Rentron App",
+    "title": "Παραγωγή Rentron",
     "welcome": "Καλώς ορίσατε",
     "logout": "Αποσύνδεση"
   },
@@ -51,10 +54,11 @@
     "account": "Ρυθμίσεις Λογαριασμού",
     "dead-time": "Νεκροί Χρόνοι",
     "frames": "Αναζήτηση Τελάρων",
-    "material-use": "Ανάλωση Υλικών"
+    "material-use": "Ανάλωση Υλικών",
+    "multi-jobs": "Παράλληλες Εργασίες"
   },
   "login": {
-    "title": "Rentron App",
+    "title": "Παραγωγή Rentron",
     "subtitle": "Παρακαλώ συνδεθείτε στο λογαριασμό σας",
     "usernamePlaceholder": "Όνομα χρήστη",
     "passwordPlaceholder": "Κωδικός πρόσβασης",
@@ -215,6 +219,7 @@
     }
   },
   "orderkeeper": {
+    "productionPosition": "Θέση Παραγωγής",
     "lockedTag": "Κλειδωμένο",
     "removePhase": "Αφαίρεση φάσης",
     "moveUp": "Μετακίνηση πάνω",
@@ -330,7 +335,80 @@
     "consumeActionTitle": "Ενέργεια κατανάλωσης",
     "partialConsumptionRelocate": "Μερική κατανάλωση + μεταφορά",
     "fullConsumption": "Πλήρης κατανάλωση",
-    "cancel": "Ακύρωση"
+    "cancel": "Ακύρωση",
+    "inProgressBy": "Σε εξέλιξη από",
+    "busyAnotherPhase": "Απασχολημένος σε άλλη φάση…",
+    "phaseLocked": "Η φάση είναι κλειδωμένη",
+    "phaseFallback": "Φάση {{id}}",
+    "finish": "Τερματισμός",
+
+    "stages": {
+      "find": "Αναζήτηση υλικού",
+      "setup": "Ρύθμιση",
+      "production": "Παραγωγή"
+    },
+
+    "buttons": {
+      "findMaterial": "Αναζήτηση Υλικού",
+      "startSetup": "Έναρξη Ρύθμισης",
+      "startProduction": "Έναρξη Παραγωγής",
+      "finishIt": "Ολοκλήρωση"
+    },
+
+    "timers": {
+      "findingMaterial": "Αναζήτηση Υλικού: {{seconds}}δ",
+      "setup": "Ρύθμιση: {{seconds}}δ",
+      "production": "Παραγωγή: {{seconds}}δ"
+    },
+
+    "modals": {
+      "activeJobTitle": "Ενεργή εργασία σε εξέλιξη",
+      "activeJobMessage": "Έχετε ήδη μια εργασία σε εξέλιξη σε άλλο δελτίο παραγωγής.",
+
+      "deadTimeRunningTitle": "Ενεργός Νεκρός Χρόνος",
+      "deadTimeRunningMessage": "Έχετε ενεργό Νεκρό Χρόνο. Ολοκληρώστε τον πριν ξεκινήσετε φάση.",
+
+      "stageStillRunningTitle": "Η {{stage}} είναι ακόμη σε εξέλιξη",
+      "stageStillRunningMessage": "Έχετε ήδη ενεργή καταγραφή για {{stage}}. Να την ολοκληρώσετε πρώτα;"
+    },
+
+    "alerts": {
+      "nothingToStart": "Δεν υπάρχει κάτι για εκκίνηση.",
+      "nothingRemainingToFinish": "Δεν απομένει κάτι για ολοκλήρωση.",
+      "invalidQuantity": "Μη έγκυρη ποσότητα."
+    },
+
+    "prompts": {
+      "enterQuantity": "Εισάγετε ποσότητα (1–{{remaining}}):"
+    },
+
+    "errors": {
+      "noActiveLogToFinish": "Δεν υπάρχει ενεργή καταγραφή για ολοκλήρωση (πιθανόν απέτυχε η εκκίνηση φάσης).",
+      "noSheetLoaded": "DEBUG: δεν φορτώθηκε δελτίο",
+      "invalidSheetStructure": "Μη έγκυρη δομή δελτίου"
+    },
+
+    "deadTime": {
+      "activeTitle": "Ενεργός χρόνος διακοπής",
+      "codeLabel": "Κωδικός",
+      "blockMessage": "Δεν μπορείτε να ξεκινήσετε ή να συνεχίσετε παραγωγή όσο υπάρχει ενεργός χρόνος διακοπής. Ολοκληρώστε τον από την καρτέλα Χρόνος Διακοπής."
+    },
+
+    "multiJob": {
+      "activeTitle": "Η συνεδρία πολλαπλών εργασιών είναι σε εξέλιξη",
+      "blockMessage": "Δεν μπορείς να σκανάρεις ή να ξεκινήσεις μεμονωμένες φάσεις όσο είναι ενεργή μια συνεδρία πολλαπλών εργασιών. Σταμάτα/ολοκλήρωσε πρώτα τη συνεδρία πολλαπλών εργασιών."
+    },
+
+    "frameInfo": "Πληροφορίες Πλαισίων",
+    "frame": {
+      "framePrefix": "ΠΛΑΙΣΙΟ",
+      "fields": {
+        "frame": "Πλαίσιο",
+        "position": "Θέση",
+        "quality": "Ποιότητα",
+        "size": "Μέγεθος"
+      }
+    }
   },
   "infraOperator": {
     "title": "Ημερήσιο Αρχείο Λειτουργιών",
@@ -533,7 +611,7 @@
     "messages": {
       "requireManualProduct": "Αυτός ο κωδικός απαιτεί χειροκίνητο Product ID.",
       "requireProductOrScan": "Αυτός ο κωδικός απαιτεί Product, είτε με QR scan είτε με χειροκίνητο Product ID.",
-      "cannotStartWhilePhaseRunning": "Δεν μπορείς να ξεκινήσεις νεκρό χρόνο όσο τρέχει φάση. Κλείσ’ την από το tab Machine Operator."
+      "cannotStartWhilePhaseRunning": "Δεν μπορείς να ξεκινήσεις νεκρό χρόνο όσο τρέχει φάση."
     },
     "errors": {
       "requiredDetails": "Βάλε τα απαραίτητα στοιχεία προϊόντος / σκαναρίσματος.",
@@ -566,7 +644,7 @@
   },
   "livePhases": {
     "title": "Ζωντανές Φάσεις Εργασίας",
-
+    "multiJobs": "Εργασίες",
     "activeNow": "Ενεργές Τώρα",
     "activeDeadTime": "Ενεργός Νεκρός Χρόνος",
     "idleUsers": "Αδρανείς Χρήστες",
@@ -631,7 +709,10 @@
       "printMaterialTicketsFull": "Εκτύπωση ΔΕΛΤΙΑ ΥΛΙΚΩΝ (Full)",
       "printStickerLayout": "Εκτύπωση διάταξης Sticker",
       "printFullLayout": "Εκτύπωση πλήρους διάταξης",
-      "close": "Κλείσιμο"
+      "close": "Κλείσιμο",
+      "exportPhasesXlsx": "Εξαγωγή Φάσεων (XLSX)",
+      "exportingXlsx": "Γίνεται εξαγωγή...",
+      "exportXlsxFailed": "Αποτυχία εξαγωγής XLSX"
     },
     "errors": {
       "parseFailed": "Αποτυχία ανάλυσης PDF",
@@ -666,8 +747,73 @@
       "printMaterialTicketsTitle": "Εκτύπωση δελτίων υλικών",
       "printPdfTitle": "Εκτύπωση PDF"
     }
+  },
+  "multiJob": {
+    "title": "Χρονόμετρο πολλαπλών εργασιών",
+    "subtitle": "Σάρωσε φύλλα παραγωγής, διάλεξε φάσεις, μετά ξεκίνα ένα χρονόμετρο και αυτόματα μοιράζει τον χρόνο σε καταγραφές.",
+    "startScanning": "Έναρξη σάρωσης",
+    "working": "Επεξεργασία…",
+
+    "alreadyAddedTag": "ήδη προστέθηκε",
+
+    "buttons": {
+      "addJob": "Προσθήκη εργασίας",
+      "added": "Προστέθηκε",
+      "remove": "Αφαίρεση",
+      "addAnotherScan": "Πρόσθεσε άλλο (σάρωση)",
+      "startSessionTimer": "Έναρξη χρονόμετρου συνεδρίας",
+      "stopAndCreateLogs": "Τερματισμός & δημιουργία καταγραφών",
+      "stopLiveSession": "Τερματισμός live συνεδρίας",
+      "keepRunning": "Συνέχισε να τρέχει"
+    },
+
+    "pickPhase": {
+      "title": "Επίλεξε φάση",
+      "sheetLine": "Φύλλο: {{sheet}} • Παραγγελία: {{order}} • Προϊόν: {{product}} • Ποσ.: {{qty}}",
+      "rowMeta": "Υπόλοιπο: {{remaining}} • productionPosition: {{pos}} • προγρ.: {{planned}} λ"
+    },
+
+    "build": {
+      "title": "Εργασίες στη συνεδρία",
+      "empty": "Δεν έχουν προστεθεί εργασίες ακόμα. Σάρωσε ένα QR για να προσθέσεις την πρώτη.",
+      "rowMeta": "Φύλλο: {{sheet}} • productionPosition: {{pos}} • προγρ.: {{planned}} λ"
+    },
+
+    "running": {
+      "title": "Η συνεδρία τρέχει",
+      "jobsSelected": "Έχουν επιλεγεί {{count}} εργασίες"
+    },
+
+    "phase": {
+      "fallback": "Φάση {{id}}"
+    },
+
+    "modal": {
+      "foundTitle": "Βρέθηκε συνεδρία πολλαπλών εργασιών",
+      "noSavedListMessage": "Υπάρχει live συνεδρία πολλαπλών εργασιών, αλλά δεν βρέθηκε αποθηκευμένη λίστα για επαναφορά. Να σταματήσει η live συνεδρία;",
+      "stopLiveSession": "Τερματισμός live συνεδρίας",
+      "keepRunning": "Συνέχισε να τρέχει"
+    },
+
+    "prompt": {
+      "quantityDone": "Ποσότητα που ολοκληρώθηκε για:\n{{phaseName}}\nΦύλλο: {{sheet}}\nΠροεπιλογή = {{remaining}}\n\nΒάλε 0-{{remaining}}:"
+    },
+
+    "errors": {
+      "notLoggedIn": "Δεν είσαι συνδεδεμένος.",
+      "deadTimeActive": "Το downtime είναι ενεργό. Ολοκλήρωσέ το πριν από multi-job.",
+      "activeLiveSession": "Έχεις ήδη ενεργή live συνεδρία. Κάνε επαναφορά/τερματισμό πρώτα.",
+      "activeSingleJob": "Έχεις ήδη ενεργή μονή εργασία. Ολοκλήρωσέ τη πρώτα.",
+      "needAtLeastTwoJobs": "Πρόσθεσε τουλάχιστον 2 εργασίες για multi-job χρονόμετρο.",
+      "nothingRemaining": "Δεν υπάρχει υπόλοιπο για εκκίνηση σε αυτή τη φάση.",
+      "duplicateJob": "Αυτή η ακριβής εργασία υπάρχει ήδη στη λίστα multi-job.",
+      "cancelled": "Ακυρώθηκε.",
+      "invalidQuantityForPhase": "Μη έγκυρη ποσότητα για {{phaseName}} (πρέπει να είναι {{min}}-{{max}}).",
+      "stoppedNoRestore": "Τερματίστηκε η live multi-job συνεδρία (δεν ήταν δυνατή η επαναφορά εργασιών)."
+    }
   }
 }
+
 
 
 

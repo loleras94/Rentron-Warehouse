@@ -18,10 +18,13 @@
     "back": "Back",
     "dash": "—",
     "saving": "Saving..." ,
-    "reset": "Reset"   
+    "reset": "Reset",
+    "ok": "OK",
+    "position": "Pos",
+    "add": "Add"        
   },
   "header": {
-    "title": "Rentron App",
+    "title": "Rentron Production",
     "welcome": "Welcome",
     "logout": "Logout"
   },
@@ -51,10 +54,11 @@
     "account": "Account Settings",
     "dead-time": "Downtime",
     "frames": "Search Frames",
-    "material-use": "Material Consumption"
+    "material-use": "Material Consumption",
+    "multi-jobs": "Parallel Jobs"
   },
   "login": {
-    "title": "Rentron App",
+    "title": "Rentron Production",
     "subtitle": "Please sign in to your account",
     "usernamePlaceholder": "Username",
     "passwordPlaceholder": "Password",
@@ -215,6 +219,7 @@
     }
   },
   "orderkeeper": {
+    "productionPosition": "Prod. Position",
     "lockedTag": "Locked",
     "removePhase": "Remove phase",
     "moveUp": "Move up",
@@ -330,7 +335,80 @@
     "consumeActionTitle": "Consume action",
     "partialConsumptionRelocate": "Partial consumption + relocate",
     "fullConsumption": "Full consumption",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "inProgressBy": "In progress by",
+    "busyAnotherPhase": "Busy on another phase…",
+    "phaseLocked": "Phase Locked",
+    "phaseFallback": "Phase {{id}}",
+    "finish": "Finish",
+
+    "stages": {
+      "find": "Find material",
+      "setup": "Setup",
+      "production": "Production"
+    },
+
+    "buttons": {
+      "findMaterial": "Find Material",
+      "startSetup": "Start Setup",
+      "startProduction": "Start Production",
+      "finishIt": "Finish it"
+    },
+
+    "timers": {
+      "findingMaterial": "Finding Material: {{seconds}}s",
+      "setup": "Setup: {{seconds}}s",
+      "production": "Production: {{seconds}}s"
+    },
+
+    "modals": {
+      "activeJobTitle": "Active job in progress",
+      "activeJobMessage": "You already have a running job on another production sheet.",
+
+      "deadTimeRunningTitle": "Dead time running",
+      "deadTimeRunningMessage": "You have an active dead-time. Finish it before starting a phase.",
+
+      "stageStillRunningTitle": "{{stage}} still running",
+      "stageStillRunningMessage": "You already have an active {{stage}} log. Finish it first?"
+    },
+
+    "alerts": {
+      "nothingToStart": "Nothing to start.",
+      "nothingRemainingToFinish": "Nothing remaining to finish.",
+      "invalidQuantity": "Invalid quantity."
+    },
+
+    "prompts": {
+      "enterQuantity": "Enter quantity (1–{{remaining}}):"
+    },
+
+    "errors": {
+      "noActiveLogToFinish": "No activeLog to finish (startPhase probably failed).",
+      "noSheetLoaded": "DEBUG: no sheet",
+      "invalidSheetStructure": "Invalid sheet structure"
+    },
+
+    "deadTime": {
+      "activeTitle": "Active Dead Time",
+      "codeLabel": "Code",
+      "blockMessage": "You cannot start or resume production while a dead-time is active. Finish it from the Dead Time tab."
+    },
+
+    "multiJob": {
+      "activeTitle": "Multi-job session is running",
+      "blockMessage": "You can’t scan or start single phases while a multi-job session is active. Stop/finish the multi-job session first."
+    },
+
+    "frameInfo": "Frame Information",
+    "frame": {
+      "framePrefix": "FRAME",
+      "fields": {
+        "frame": "Frame",
+        "position": "Position",
+        "quality": "Quality",
+        "size": "Size"
+      }
+    }    
   },
   "infraOperator": {
     "title": "Daily Operations Log",
@@ -566,7 +644,7 @@
   },
   "livePhases": {
     "title": "Live Working Phases",
-
+    "multiJobs": "Jobs",
     "activeNow": "Active Now",
     "activeDeadTime": "Active Dead Time",
     "idleUsers": "Idle Users",
@@ -631,7 +709,10 @@
       "printMaterialTicketsFull": "Print MATERIAL TICKETS (Full)",
       "printStickerLayout": "Print Sticker Layout",
       "printFullLayout": "Print Full Layout",
-      "close": "Close"
+      "close": "Close",
+      "exportPhasesXlsx": "Export Phases (XLSX)",
+      "exportingXlsx": "Exporting...",
+      "exportXlsxFailed": "Failed to export XLSX"
     },
     "errors": {
       "parseFailed": "Failed to parse PDF",
@@ -666,8 +747,74 @@
       "printMaterialTicketsTitle": "Print Material Tickets",
       "printPdfTitle": "Print PDF"
     }
+  },
+  "multiJob": {
+    "title": "Multi-job timer",
+    "subtitle": "Scan sheets, select phases, then start one timer and auto-split time into logs.",
+    "startScanning": "Start scanning",
+    "working": "Working…",
+
+    "alreadyAddedTag": "already added",
+
+    "buttons": {
+      "addJob": "Add job",
+      "added": "Added",
+      "remove": "Remove",
+      "addAnotherScan": "Add another (scan)",
+      "startSessionTimer": "Start session timer",
+      "stopAndCreateLogs": "Stop & create logs",
+      "stopLiveSession": "Stop live session",
+      "keepRunning": "Keep running"
+    },
+
+    "pickPhase": {
+      "title": "Pick a phase",
+      "sheetLine": "Sheet: {{sheet}} • Order: {{order}} • Product: {{product}} • Qty: {{qty}}",
+      "rowMeta": "Remaining: {{remaining}} • productionPosition: {{pos}} • planned: {{planned}} min"
+    },
+
+    "build": {
+      "title": "Jobs in session",
+      "empty": "No jobs added yet. Scan a QR to add the first job.",
+      "rowMeta": "Sheet: {{sheet}} • productionPosition: {{pos}} • planned: {{planned}} min"
+    },
+
+    "running": {
+      "title": "Session running",
+      "jobsSelected": "{{count}} jobs selected"
+    },
+
+    "phase": {
+      "fallback": "Phase {{id}}"
+    },
+
+    "modal": {
+      "foundTitle": "Multi-job session found",
+      "noSavedListMessage": "A multi-job live session is running, but no saved job list was found to restore. Stop the live session?",
+      "stopLiveSession": "Stop live session",
+      "keepRunning": "Keep running"
+    },
+
+    "prompt": {
+      "quantityDone": "Quantity done for:\n{{phaseName}}\nSheet: {{sheet}}\nDefault = {{remaining}}\n\nEnter 0-{{remaining}}:"
+    },
+
+    "errors": {
+      "notLoggedIn": "Not logged in.",
+      "deadTimeActive": "Dead time is active. Finish it before multi-job.",
+      "activeLiveSession": "You already have an active live session. Resume/stop it first.",
+      "activeSingleJob": "You already have an active single-job running. Finish it first.",
+      "needAtLeastTwoJobs": "Add at least 2 jobs for multi-job timing.",
+      "nothingRemaining": "Nothing remaining to start for that phase instance.",
+      "duplicateJob": "That exact job is already in your multi-job list.",
+      "cancelled": "Cancelled.",
+      "invalidQuantityForPhase": "Invalid quantity for {{phaseName}} (must be {{min}}-{{max}}).",
+      "stoppedNoRestore": "Stopped live multi-job session (could not restore jobs)."
+    }
   }
 }
+
+
 
 
 

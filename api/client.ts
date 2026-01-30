@@ -67,6 +67,7 @@ const getTabsForRoles = (roles: UserRole[]): AllowedView[] => {
       "manager", 
       "live-phases", 
       "frames",  
+      "multi-jobs", 
     ].forEach((t) => tabs.add(t as AllowedView));
   }
 
@@ -78,6 +79,7 @@ const getTabsForRoles = (roles: UserRole[]): AllowedView[] => {
   if (roles.includes("machineoperator")) {
     tabs.add("scan-product-sheet");
     tabs.add("dead-time");
+    tabs.add("multi-jobs");
   }
   if (roles.includes("orderkeeper")) {
     tabs.add("orders");
@@ -501,6 +503,7 @@ export const startPhase = async (data: {
   productId: string;
   phaseId: string;
   startTime: string;
+  position: string;
   totalQuantity: number;
   findMaterialTime?: number;
   setupTime?: number;
@@ -735,10 +738,15 @@ export async function getLiveStatus() {
       productionSheetNumber: a.production_sheet_number,
       productId: a.product_id,
       phaseId: a.phase_id,
+      position: a.position,
+      productionPosition: a.production_position,
       plannedTime: a.planned_time,
       status: a.status,
       runningSeconds: a.running_seconds,
       isOverrun: a.is_overrun,
+
+      // ✅ keep multi jobs
+      multiItems: a.multiItems ?? a.multi_items ?? [],
     })),
 
     dead: (raw.dead || []).map((d: any) => ({
@@ -757,9 +765,13 @@ export async function getLiveStatus() {
       username: u.username,
       kind: u.kind,
 
-      lastSheetId: u.last_sheet_id,
+      lastSheetId: u.last_sheet_id, // (still not provided by SQL; ok)
       lastSheetNumber: u.last_sheet_number,
       lastPhaseId: u.last_phase_id,
+      lastProductId: u.last_product_id, // ✅ now exists
+
+      // ✅ use reconstructed chain (works for multi too)
+      multiItems: u.multiItems ?? u.multi_items ?? u.last_items ?? [],
 
       deadCode: u.dead_code,
       deadDescription: u.dead_description,
@@ -774,12 +786,12 @@ export async function getLiveStatus() {
   };
 }
 
-
 export async function startLivePhase(data: {
   username: string;
   sheetId: string;
   productId: string;
   phaseId: string;
+  position: string;
   plannedTime: number; 
   status?: string; 
 }) {
@@ -916,3 +928,36 @@ export async function getDailyMaterialUseLogs(date: string): Promise<MaterialUse
 }
 
 
+
+export async function saveMultiSession(data: {
+  username: string;
+  items: Array<{ qrValue: string; phaseId: string; position: string; stage: string }>;
+}) {
+  return apiFetch("/api/multi-session/save", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getMyMultiSession() {
+  return apiFetch("/api/multi-session/my", { method: "GET" });
+}
+
+export async function clearMyMultiSession() {
+  return apiFetch("/api/multi-session/my", { method: "DELETE" });
+}
+
+
+export async function exportPhasesXlsx(file: File): Promise<Blob> {
+  const fd = new FormData();
+  fd.append("file", file);
+
+  const res = await fetch(`${API_URL}/export_phases_xlsx`, {
+    method: "POST",
+    body: fd,
+    credentials: "include",
+  });
+
+  if (!res.ok) throw new Error(await res.text());
+  return await res.blob();
+}

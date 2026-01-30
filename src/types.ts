@@ -54,6 +54,7 @@ export interface ProductPhase {
   totalSetupTime?: number; 
   totalProductionTime?: number; 
   position: string;
+  productionPosition: string;
 }
 
 export interface Product {
@@ -166,7 +167,8 @@ export type AllowedView =
   | "account"
   | "dead-time"
   | "frames"
-  | "material-use";
+  | "material-use"
+  | "multi-jobs";
 
 export interface User {
   id: number;

@@ -24,6 +24,7 @@ const Header: React.FC<HeaderProps> = ({
     { id: "orders", label: t("tabs.orders") },
     { id: "pdf-import", label: t("tabs.pdf-import") },
     { id: "scan-product-sheet", label: t("tabs.scan-product-sheet") },
+    { id: "multi-jobs", label: t("tabs.multi-jobs") },
     { id: "material-use", label: t("tabs.material-use") },
     { id: "daily-logs", label: t("tabs.daily-logs") },
     { id: "phase-manager", label: t("tabs.phase-manager") },

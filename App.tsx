@@ -21,7 +21,7 @@ import AccountSettingsView from './components/AccountSettingsView';
 import DeadTimeView from "./components/DeadTimeView";
 import FramesView from './components/FramesView';
 import MaterialUseView from "./components/MaterialUseView";
-
+import MultiJobOperatorView from "./components/MultiJobOperatorView";
 
 type View =
   | 'operator'
@@ -39,7 +39,8 @@ type View =
   | 'account'
   | 'dead-time'
   | 'frames'
-  | 'material-use';
+  | 'material-use'
+  | 'multi-jobs';
 
 const AuthenticatedApp: React.FC = () => {
   const { user, logout } = useAuth();
@@ -95,7 +96,9 @@ const AuthenticatedApp: React.FC = () => {
       case "frames":
         return <FramesView />;   
       case "material-use":
-        return <MaterialUseView />;     
+        return <MaterialUseView />;  
+      case "multi-jobs":
+        return <MultiJobOperatorView />;      
       default:
         // A user's default view might not be in the nav, but still valid.
         // If not, redirect to first allowed tab.

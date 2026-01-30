@@ -6,36 +6,28 @@ import type {
   Phase,
   PhaseLog,
   Material,
-  ActionType
+  ActionType,
 } from "../src/types";
 import Scanner from "./Scanner";
 import { useAuth } from "../hooks/useAuth";
-import { useWarehouse } from "../hooks/useWarehouse";
 import ConfirmModal from "../components/ConfirmModal";
 import { mapPhaseLog } from "../src/mapPhaseLog";
 import ActionModal from "./ActionModal";
 
-
 type StageType = "find" | "setup" | "production";
-
 
 /* ---------------------------------------------------------
    HELPERS
 --------------------------------------------------------- */
 
-const safeInt = (v: any, fallback = 0): number => {
-  const n = Number(v);
-  return Number.isFinite(n) ? Math.floor(n) : fallback;
-};
-
+// Composite key for phase
+const phaseKeyOf = (p: any) => `${String(p.phaseId)}@${String(p.position ?? "")}`;
 
 // phases in product snapshot may use id / phase_id / phaseId
 const normalizeProductPhases = (rawProduct: any | null | undefined) => {
   if (!rawProduct) return { ...rawProduct, phases: [] as any[] };
 
-  const phasesArr = Array.isArray(rawProduct.phases)
-    ? rawProduct.phases
-    : [];
+  const phasesArr = Array.isArray(rawProduct.phases) ? rawProduct.phases : [];
 
   const normalizedPhases = phasesArr.map((p: any) => ({
     ...p,
@@ -50,11 +42,10 @@ const normalizeProductPhases = (rawProduct: any | null | undefined) => {
 
 const buildProductionCode = (sheet: ProductionSheetForOperator | null): string => {
   if (!sheet) return "";
-  const productCode = String(sheet.productId); 
+  const productCode = String(sheet.productId);
   const order = String(sheet.orderNumber);
   return `${productCode}/${order}`;
 };
-
 
 /* ---------------------------------------------------------
    SAFELY RESOLVE MATERIALS - FRAMES
@@ -90,19 +81,11 @@ const resolveMaterialsForPhase = (
   );
 };
 
-const resolveFramesForProduct = (
-  sheet: ProductionSheetForOperator | null,
-  frames: any[]
-) => {
+const resolveFramesForProduct = (sheet: ProductionSheetForOperator | null, frames: any[]) => {
   if (!sheet) return [];
-
   const productId = String(sheet.productId);
 
-  return frames.filter(
-    (f) =>
-      Array.isArray(f.productIds) &&
-      f.productIds.includes(productId)
-  );
+  return frames.filter((f) => Array.isArray(f.productIds) && f.productIds.includes(productId));
 };
 
 /* ---------------------------------------------------------
@@ -111,124 +94,28 @@ const resolveFramesForProduct = (
 const MachineOperatorView: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { materials } = useWarehouse();
-
-  useEffect(() => {
-    if (!user) return;
-
-    let cancelled = false;
-
-    const resumeFromBackend = async () => {
-      console.log("🔁 RESUME: checking live status...");
-      try {
-        // 🔴 STEP 0: check DEAD TIME FIRST
-        const status = await api.getLiveStatus();
-        if (cancelled) return;
-
-        const myDead = (status.dead || []).find(
-          (d: any) => d.username === user.username
-        );
-
-        if (myDead) {
-          console.log("⛔ RESUME: dead time active, blocking machine view");
-          setActiveDeadTime(myDead);
-          return; // ⛔ STOP HERE — do NOT resume phases
-        }
-
-        setActiveDeadTime(null);
-
-        console.log("🔁 RESUME: checking active phase...");
-        const res = await api.getMyActivePhase();
-        console.log("🔁 RESUME: backend response =", res);
-        if (cancelled) return;
-        if (!res.active) return;
-
-        // 1️⃣ Load the correct sheet
-        setViewState("idle");
-        console.log(
-          "🔁 RESUME: loading sheet from QR",
-          res.active.qr_value
-        );
-        await handleScanSuccess(res.active.qr_value);
-        console.log("🔁 RESUME: sheet loaded, restoring active phase state");
-
-        if (cancelled) return;
-
-        // 2️⃣ Rehydrate ACTIVE LOG (THIS WAS MISSING)
-        const restoredLog: PhaseLog = {
-          id: res.active.log_id,
-          phaseId: String(res.active.phase_id),
-          stage: res.active.stage,
-          startTime: res.active.start_time,
-          endTime: null,
-          quantityDone: 0,
-          operatorUsername: user.username,
-        } as any;
-
-        console.log("🔁 RESUME: restoredLog =", restoredLog);
-        setActiveLog(restoredLog);
-
-        // 3️⃣ Restore running stage
-        setCurrentStage(res.active.stage);
-        setCurrentStagePhaseId(String(res.active.phase_id));
-
-        // 4️⃣ Resume timer
-        setStageSeconds(res.active.running_seconds ?? 0);
-        clearStageTimer();
-
-        console.log("🔁 RESUME: state set", {
-          activeLog: restoredLog,
-          currentStage: res.active.stage,
-          currentStagePhaseId: String(res.active.phase_id),
-        });
-
-        console.log(
-          "⏱️ RESUME: starting timer at",
-          res.active.running_seconds,
-          "seconds"
-        );
-
-        stageTimerRef.current = window.setInterval(() => {
-          setStageSeconds((s) => s + 1);
-        }, 1000);
-      } catch (e) {
-        console.error("Auto-resume failed:", e);
-      }
-    };
-
-    resumeFromBackend();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
-
 
   const [materialInfo, setMaterialInfo] = useState<Material[] | null>(null);
   const [frameInfo, setFrameInfo] = useState<any[] | null>(null);
-  const [viewState, setViewState] =
-    useState<"idle" | "scanning" | "details">("idle");
+  const [viewState, setViewState] = useState<"idle" | "scanning" | "details">("idle");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const [sheet, setSheet] = useState<ProductionSheetForOperator | null>(null);
   const [phases, setPhases] = useState<Phase[]>([]);
   const [activeLog, setActiveLog] = useState<PhaseLog | null>(null);
-  
+
   const [activeDeadTime, setActiveDeadTime] = useState<any | null>(null);
 
   const [currentStage, setCurrentStage] = useState<StageType | null>(null);
-  const [currentStagePhaseId, setCurrentStagePhaseId] = useState<string | null>(
-    null
-  );
+  const [currentStagePhaseId, setCurrentStagePhaseId] = useState<string | null>(null);
+
   const stageTimerRef = useRef<number | null>(null);
   const modalResolverRef = useRef<((v: boolean) => void) | null>(null);
   const [stageSeconds, setStageSeconds] = useState(0);
 
-  const [pendingStageTimes, setPendingStageTimes] = useState<
-    Record<string, { find: number; setup: number }>
-  >({});
+  const [pendingStageTimes, setPendingStageTimes] = useState<Record<string, { find: number; setup: number }>>({});
+  const [activeMultiJob, setActiveMultiJob] = useState<any | null>(null);
 
   // Modal
   const [modalData, setModalData] = useState<{
@@ -271,7 +158,7 @@ const MachineOperatorView: React.FC = () => {
         title,
         message,
         buttons,
-        resolver: null, // <- don't rely on state for resolver
+        resolver: null,
       });
     });
 
@@ -289,7 +176,6 @@ const MachineOperatorView: React.FC = () => {
     }
   };
 
-  // Clear timer on unmount, just in case
   useEffect(() => {
     return () => {
       clearStageTimer();
@@ -309,10 +195,7 @@ const MachineOperatorView: React.FC = () => {
   const normalizeSheet = (raw: any): ProductionSheetForOperator => {
     const product = normalizeProductPhases(raw.product || null);
 
-    const rawLogs = Array.isArray(raw.phaseLogs)
-      ? raw.phaseLogs
-      : raw.phase_logs || [];
-
+    const rawLogs = Array.isArray(raw.phaseLogs) ? raw.phaseLogs : raw.phase_logs || [];
     const phaseLogs = rawLogs.map(mapPhaseLog);
 
     return {
@@ -321,6 +204,92 @@ const MachineOperatorView: React.FC = () => {
       product,
     };
   };
+
+  const refreshCurrentSheet = async (qrValue?: string) => {
+    const qr = qrValue || sheet?.qrValue;
+    if (!qr) return;
+    const updatedRaw = await api.getProductionSheetByQr(qr);
+    setSheet(normalizeSheet(updatedRaw));
+  };
+
+  /* ---------------------------------------------------------
+     RESUME FROM BACKEND
+  --------------------------------------------------------- */
+  useEffect(() => {
+    if (!user) return;
+
+    let cancelled = false;
+
+    const resumeFromBackend = async () => {
+      try {
+        // check dead time
+        const status = await api.getLiveStatus();
+        if (cancelled) return;
+
+        const myDead = (status.dead || []).find((d: any) => d.username === user.username);
+        if (myDead) {
+          setActiveDeadTime(myDead);
+          return;
+        }
+
+        setActiveDeadTime(null);
+
+        // ✅ block if multi session running
+        const myMulti = (status.active || []).find(
+          (x: any) => x.username === user.username && String(x.status || "") === "multi"
+        );
+
+        if (myMulti) {
+          setActiveMultiJob(myMulti);
+          return;
+        }
+
+        setActiveMultiJob(null);
+
+        const res = await api.getMyActivePhase();
+
+        if (cancelled) return;
+        if (!res.active) return;
+
+        setViewState("idle");
+
+        await handleScanSuccess(res.active.qr_value);
+        if (cancelled) return;
+
+        const restoredLog: PhaseLog = {
+          id: res.active.id,
+          phaseId: String(res.active.phase_id),
+          position: res.active.position,
+          productionPosition: res.active.production_position,
+          stage: res.active.stage,
+          startTime: res.active.start_time,
+          endTime: null,
+          quantityDone: 0,
+          operatorUsername: user.username,
+        } as any;
+
+        setActiveLog(restoredLog);
+        setCurrentStage(res.active.stage);
+        setCurrentStagePhaseId(String(res.active.phase_id));
+
+        setStageSeconds(res.active.running_seconds ?? 0);
+        clearStageTimer();
+
+        stageTimerRef.current = window.setInterval(() => {
+          setStageSeconds((s) => s + 1);
+        }, 1000);
+      } catch (e) {
+        console.error("Auto-resume failed:", e);
+      }
+    };
+
+    resumeFromBackend();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   /* ---------------------------------------------------------
      SCAN SUCCESS
@@ -336,15 +305,15 @@ const MachineOperatorView: React.FC = () => {
       setSheet(data);
 
       const res = await api.getMyActivePhase();
-
       if (res.active && String(res.active.sheet_id) !== String(data.id)) {
         await openModal(
-          "Active job in progress",
-          "You already have a running job on another production sheet.",
-          [{ label: "OK", type: "primary", onClick: () => closeModal(false) }]
+          t("machineOperator.modals.activeJobTitle"),
+          t("machineOperator.modals.activeJobMessage"),
+          [{ label: t("common.ok"), type: "primary", onClick: () => closeModal(false) }]
         );
         return;
       }
+
       setViewState("details");
     } catch (err) {
       setError((err as Error).message);
@@ -355,38 +324,69 @@ const MachineOperatorView: React.FC = () => {
   };
 
   /* ---------------------------------------------------------
-     SAFE remaining calculation
+     SORTED PHASES + STATUS MAP
   --------------------------------------------------------- */
-  const computeRemainingForPhase = (phaseId: string): number => {
-    if (!sheet) return 0;
+  const sortedPhases = useMemo(() => {
+    if (!sheet?.product?.phases) return [];
+    return (sheet.product.phases ?? []).sort((a, b) => {
+      return (Number((a as any).productionPosition) || 0) - (Number((b as any).productionPosition) || 0);
+    });
+  }, [sheet]);
 
-    const phasesArr = sheet.product?.phases ?? [];
+  const phaseStatuses = useMemo(() => {
+    if (!sheet) return new Map();
+
     const logs = sheet.phaseLogs ?? [];
+    const statuses = new Map<string, { done: number; total: number; inProgress: boolean }>();
 
-    const doneByPhase = new Map<string, number>();
-    phasesArr.forEach((p: any) =>
-      doneByPhase.set(String(p.phaseId), 0)
+    sortedPhases.forEach((p: any) =>
+      statuses.set(phaseKeyOf(p), {
+        done: 0,
+        total: sheet.quantity,
+        inProgress: false,
+      })
     );
 
     logs.forEach((log) => {
-      const key = String(log.phaseId);
-      doneByPhase.set(
-        key,
-        (doneByPhase.get(key) || 0) + (log.quantityDone || 0)
-      );
+      const key = phaseKeyOf(log);
+      const st = statuses.get(key);
+      if (!st) return;
+      st.done += log.quantityDone || 0;
+      if (!log.endTime) st.inProgress = true;
     });
 
-    const idx = phasesArr.findIndex(
-      (p: any) => String(p.phaseId) === String(phaseId)
+    return statuses;
+  }, [sheet, sortedPhases]);
+
+  /* ---------------------------------------------------------
+     SAFE remaining calculation
+  --------------------------------------------------------- */
+  const computeRemainingForPhase = (phaseId: string, position: string): number => {
+    if (!sheet) return 0;
+
+    const phasesArr = sortedPhases ?? [];
+    const logs = sheet.phaseLogs ?? [];
+
+    const phaseObj = phasesArr.find(
+      (p: any) => String(p.phaseId) === String(phaseId) && String(p.position) === String(position)
     );
+
+    if (!phaseObj) return 0;
+
+    const doneByPhase = new Map<string, number>();
+    phasesArr.forEach((p: any) => doneByPhase.set(phaseKeyOf(p), 0));
+
+    logs.forEach((log: any) => {
+      const key = phaseKeyOf(log);
+      doneByPhase.set(key, (doneByPhase.get(key) || 0) + (log.quantityDone || 0));
+    });
+
+    const idx = phasesArr.findIndex((p: any) => phaseKeyOf(p) === phaseKeyOf(phaseObj));
     if (idx < 0) return 0;
 
-    const upstreamDone =
-      idx === 0
-        ? sheet.quantity
-        : doneByPhase.get(String(phasesArr[idx - 1].phaseId)) || 0;
+    const upstreamDone = idx === 0 ? sheet.quantity : doneByPhase.get(phaseKeyOf(phasesArr[idx - 1])) || 0;
+    const alreadyDoneHere = doneByPhase.get(phaseKeyOf(phaseObj)) || 0;
 
-    const alreadyDoneHere = doneByPhase.get(String(phaseId)) || 0;
     return Math.max(0, upstreamDone - alreadyDoneHere);
   };
 
@@ -396,52 +396,23 @@ const MachineOperatorView: React.FC = () => {
     const phasesArr = sheet.product?.phases ?? [];
     const idx = phasesArr.findIndex((p: any) => String(p.phaseId) === String(phaseId));
     if (idx < 0) return false;
-
-    // first phase is always startable (upstream = sheet.quantity)
     if (idx === 0) return true;
 
-    const prevId = String(phasesArr[idx - 1].phaseId);
-    const prevDone = phaseStatuses.get(prevId)?.done || 0;
+    const prevPhase = phasesArr[idx - 1];
+    const prevKey = phaseKeyOf(prevPhase);
+    const prevDone = phaseStatuses.get(prevKey)?.done || 0;
 
-    const myDone = phaseStatuses.get(String(phaseId))?.done || 0;
+    const currentPhase = phasesArr[idx];
+    const currentKey = phaseKeyOf(currentPhase);
+    const myDone = phaseStatuses.get(currentKey)?.done || 0;
+
     const canStartQty = Math.max(0, prevDone - myDone);
-
     return canStartQty > 0;
   };
 
   /* ---------------------------------------------------------
-     SAFE STATUS MAP
+     MATERIAL / FRAME INFO
   --------------------------------------------------------- */
-  const phaseStatuses = useMemo(() => {
-    if (!sheet) return new Map();
-
-    const phasesArr = sheet.product?.phases ?? [];
-    const logs = sheet.phaseLogs ?? [];
-
-    const statuses = new Map<
-      string,
-      { done: number; total: number; inProgress: boolean }
-    >();
-
-    phasesArr.forEach((p: any) =>
-      statuses.set(String(p.phaseId), {
-        done: 0,
-        total: sheet.quantity,
-        inProgress: false,
-      })
-    );
-
-    logs.forEach((log) => {
-      const key = String(log.phaseId);
-      const st = statuses.get(key);
-      if (!st) return;
-      st.done += log.quantityDone || 0;
-      if (!log.endTime) st.inProgress = true;
-    });
-
-    return statuses;
-  }, [sheet]);
-
   useEffect(() => {
     if (!sheet) {
       setMaterialInfo(null);
@@ -449,18 +420,21 @@ const MachineOperatorView: React.FC = () => {
       return;
     }
 
-    const hasPhase2or30 = (sheet.product?.phases ?? []).some((p: any) =>
-      ["2", "30"].includes(String(p.phaseId))
-    );
+    const hasPhase2or30 = (sheet.product?.phases ?? []).some((p: any) => ["2", "30"].includes(String(p.phaseId)));
 
     if (!hasPhase2or30) {
       setMaterialInfo(null);
       return;
     }
 
-    // phase is considered "completed" if total done >= sheet.quantity
-    const done2 = phaseStatuses.get("2")?.done || 0;
-    const done30 = phaseStatuses.get("30")?.done || 0;
+    // consider "completed" if sum of done for phaseId 2 or 30 (any position) >= sheet.quantity
+    const sumDoneForPhaseId = (pid: string) =>
+      Array.from(phaseStatuses.entries())
+        .filter(([k]) => String(k).startsWith(`${pid}@`))
+        .reduce((acc, [, v]) => acc + (v?.done || 0), 0);
+
+    const done2 = sumDoneForPhaseId("2");
+    const done30 = sumDoneForPhaseId("30");
     const phase2or30Completed = done2 >= sheet.quantity || done30 >= sheet.quantity;
 
     if (phase2or30Completed) {
@@ -475,7 +449,6 @@ const MachineOperatorView: React.FC = () => {
         const freshMaterials = await api.getMaterials();
         if (cancelled) return;
 
-        // resolveMaterialsForPhase already filters > 0 now
         const filtered = resolveMaterialsForPhase(sheet, freshMaterials);
         setMaterialInfo(filtered.length ? filtered : null);
       } catch (e) {
@@ -483,19 +456,17 @@ const MachineOperatorView: React.FC = () => {
       }
     })();
 
-
-    // ===== FRAME INFO (PHASE 21) =====
-    const hasPhase21 = (sheet.product?.phases ?? []).some(
-      (p: any) => String(p.phaseId) === "21"
-    );
+    // FRAME INFO (PHASE 21)
+    const hasPhase21 = (sheet.product?.phases ?? []).some((p: any) => String(p.phaseId) === "21");
 
     if (!hasPhase21) {
       setFrameInfo(null);
     } else {
-      const done21 = phaseStatuses.get("21")?.done || 0;
-      const phase21Completed = done21 >= sheet.quantity;
+      const done21 = Array.from(phaseStatuses.entries())
+        .filter(([k]) => String(k).startsWith(`21@`))
+        .reduce((acc, [, v]) => acc + (v?.done || 0), 0);
 
-      // NEW: only show when phase 21 is actually startable/unlocked
+      const phase21Completed = done21 >= sheet.quantity;
       const phase21Startable = canStartPhase("21");
 
       if (phase21Completed || !phase21Startable) {
@@ -516,19 +487,17 @@ const MachineOperatorView: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [sheet, phaseStatuses]);
-
+  }, [sheet, phaseStatuses]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------------------------------------------------------
      FINISH PREVIOUS PHASE DIALOG
   --------------------------------------------------------- */
   const ensurePreviousPhaseClosed = async () => {
-
     if (activeDeadTime) {
       await openModal(
-        "Dead time running",
-        "You have an active dead-time. Finish it before starting a phase.",
-        [{ label: "OK", type: "primary", onClick: () => closeModal(false) }]
+        t("machineOperator.modals.deadTimeRunningTitle"),
+        t("machineOperator.modals.deadTimeRunningMessage"),
+        [{ label: t("common.ok"), type: "primary", onClick: () => closeModal(false) }]
       );
       return false;
     }
@@ -538,16 +507,18 @@ const MachineOperatorView: React.FC = () => {
     const runningStage = (activeLog as any).stage as StageType | undefined;
 
     const stageLabel =
-      runningStage === "find" ? "Find material" :
-      runningStage === "setup" ? "Setup" :
-      "Production";
+      runningStage === "find"
+        ? t("machineOperator.stages.find")
+        : runningStage === "setup"
+        ? t("machineOperator.stages.setup")
+        : t("machineOperator.stages.production");
 
     const confirm = await openModal(
-      `${stageLabel} still running`,
-      `You already have an active ${stageLabel} log. Finish it first?`,
+      t("machineOperator.modals.stageStillRunningTitle", { stage: stageLabel }),
+      t("machineOperator.modals.stageStillRunningMessage", { stage: stageLabel }),
       [
-        { label: "Finish it", type: "primary", onClick: () => closeModal(true) },
-        { label: "Cancel", type: "secondary", onClick: () => closeModal(false) },
+        { label: t("machineOperator.buttons.finishIt"), type: "primary", onClick: () => closeModal(true) },
+        { label: t("common.cancel"), type: "secondary", onClick: () => closeModal(false) },
       ]
     );
 
@@ -559,67 +530,62 @@ const MachineOperatorView: React.FC = () => {
     return true;
   };
 
-
-
   /* ---------------------------------------------------------
      START SIMPLE STAGES (find/setup)
   --------------------------------------------------------- */
-  const startSimpleStage = async (phaseId: string, stage: StageType) => {
+  const startSimpleStage = async (phaseId: string, stage: StageType, position: string) => {
     if (stage === "production") return;
     if (!sheet || !user?.username) return;
 
-    const ok = await ensurePreviousPhaseClosed();
-    if (!ok) return;
-
-    const remainingForPhase = computeRemainingForPhase(phaseId);
-    if (remainingForPhase <= 0) return alert("Nothing to start.");
+    const remainingForPhase = computeRemainingForPhase(phaseId, position);
+    if (remainingForPhase <= 0) return alert(t("machineOperator.alerts.nothingToStart"));
 
     setIsLoading(true);
     setError(null);
 
     try {
-      // 1) create the log FIRST
       const newLog = await api.startPhase({
         operatorUsername: user.username,
         orderNumber: sheet.orderNumber,
         productionSheetNumber: sheet.productionSheetNumber,
         productId: sheet.productId,
         phaseId,
+        position,
         startTime: new Date().toISOString(),
-        // ⚠️ see note below about totalQuantity=0
         totalQuantity: 0,
         stage,
       });
 
       setActiveLog(mapPhaseLog(newLog));
 
-      // 2) start live phase
-      const def: any = sheet.product?.phases?.find((p: any) => String(p.phaseId) === String(phaseId));
-      const plannedTime =
-        (def?.setupTime || 0) + (def?.productionTimePerPiece || 0) * remainingForPhase;
+      const def: any = sheet.product?.phases?.find(
+        (p: any) => String(p.phaseId) === String(phaseId) && String(p.position) === String(position)
+      );
+
+      const plannedTime = (def?.setupTime || 0) + (def?.productionTimePerPiece || 0) * remainingForPhase;
 
       await api.startLivePhase({
         username: user.username,
         sheetId: sheet.id,
         productId: sheet.productId,
         phaseId,
+        position,
         plannedTime,
         status: stage === "find" ? "search" : "setup",
       });
 
-      // 3) only now start UI timer
       setCurrentStage(stage);
       setCurrentStagePhaseId(phaseId);
       setStageSeconds(0);
 
       clearStageTimer();
-      stageTimerRef.current = window.setInterval(() => {
-        setStageSeconds((s) => s + 1);
-      }, 1000);
+      stageTimerRef.current = window.setInterval(() => setStageSeconds((s) => s + 1), 1000);
+
+      // keep UI consistent
+      await refreshCurrentSheet(sheet.qrValue);
     } catch (e) {
       console.error("startSimpleStage error:", e);
       setError((e as Error).message);
-      // ✅ ensure UI isn't stuck
       clearStageTimer();
       setCurrentStage(null);
       setCurrentStagePhaseId(null);
@@ -637,17 +603,12 @@ const MachineOperatorView: React.FC = () => {
 
     clearStageTimer();
 
-    const phaseId = currentStagePhaseId;
     const seconds = stageSeconds;
-
-    // snapshot the log id NOW (state may change async)
     const logId = activeLog?.id;
 
     setIsLoading(true);
     try {
-      if (!logId) {
-        throw new Error("No activeLog to finish (startPhase probably failed).");
-      }
+      if (!logId) throw new Error(t("machineOperator.errors.noActiveLogToFinish"));
 
       await api.finishPhase(logId, new Date().toISOString(), 0, seconds);
 
@@ -656,11 +617,13 @@ const MachineOperatorView: React.FC = () => {
       }
 
       setActiveLog(null);
+
+      // refresh to reflect finished state
+      await refreshCurrentSheet();
     } catch (e) {
       console.error("finishSimpleStage error:", e);
       setError((e as Error).message);
     } finally {
-      // ✅ ALWAYS unlock UI
       setStageSeconds(0);
       setCurrentStage(null);
       setCurrentStagePhaseId(null);
@@ -668,23 +631,20 @@ const MachineOperatorView: React.FC = () => {
     }
   };
 
-
   /* ---------------------------------------------------------
-     START PRODUCTION (FULLY PATCHED)
+     START PRODUCTION (REFRESH AFTER START)
   --------------------------------------------------------- */
-  const startProductionStage = async (phaseId: string) => {
+  const startProductionStage = async (phaseId: string, position: string) => {
     const ok = await ensurePreviousPhaseClosed();
     if (!ok) return;
     if (!sheet || !user) return;
 
-    const remainingForPhase = computeRemainingForPhase(phaseId);
-    if (remainingForPhase <= 0) return alert("Nothing to start.");
+    const remainingForPhase = computeRemainingForPhase(phaseId, position);
+    if (remainingForPhase <= 0) return alert(t("machineOperator.alerts.nothingToStart"));
 
     const times = pendingStageTimes[phaseId] || { find: 0, setup: 0 };
     setIsLoading(true);
-
-    const phase = sheet.product.phases.find((p: any) => String(p.phaseId) === String(phaseId));
-    console.log("Phase position:", phase?.position); // Check if position exists
+    setError(null);
 
     try {
       const newLog = await api.startPhase({
@@ -693,11 +653,12 @@ const MachineOperatorView: React.FC = () => {
         productionSheetNumber: sheet.productionSheetNumber,
         productId: sheet.productId,
         phaseId,
+        position,
         startTime: new Date().toISOString(),
-        totalQuantity: remainingForPhase, // ⭐ key fix
+        totalQuantity: remainingForPhase,
         findMaterialTime: times.find || 0,
         setupTime: times.setup || 0,
-        stage: 'production',
+        stage: "production",
       });
 
       const normalizedLog = mapPhaseLog(newLog);
@@ -712,17 +673,17 @@ const MachineOperatorView: React.FC = () => {
       // Start live
       try {
         const def: any = sheet.product?.phases?.find(
-          (p: any) => String(p.phaseId) === String(phaseId)
+          (p: any) => String(p.phaseId) === String(phaseId) && String(p.position) === String(position)
         );
         if (def) {
-          const planned =
-            (def.productionTimePerPiece || 0) * remainingForPhase;
+          const planned = (def.productionTimePerPiece || 0) * remainingForPhase;
 
           await api.startLivePhase({
             username: user.username,
             sheetId: sheet.id,
             productId: sheet.productId,
             phaseId,
+            position,
             plannedTime: planned,
             status: "production",
           });
@@ -736,9 +697,17 @@ const MachineOperatorView: React.FC = () => {
       setCurrentStagePhaseId(phaseId);
       setStageSeconds(0);
 
-      stageTimerRef.current = window.setInterval(() => {
-        setStageSeconds((s) => s + 1);
-      }, 1000);
+      stageTimerRef.current = window.setInterval(() => setStageSeconds((s) => s + 1), 1000);
+
+      // ✅ REQUIRED: refresh from backend so "In progress by..." + completion buttons appear
+      await refreshCurrentSheet(sheet.qrValue);
+    } catch (e) {
+      console.error("startProductionStage error:", e);
+      setError((e as Error).message);
+      clearStageTimer();
+      setCurrentStage(null);
+      setCurrentStagePhaseId(null);
+      setStageSeconds(0);
     } finally {
       setIsLoading(false);
     }
@@ -751,22 +720,23 @@ const MachineOperatorView: React.FC = () => {
     if (!activeLog || !sheet) return;
 
     const phaseId = String(activeLog.phaseId);
-    const remaining = computeRemainingForPhase(phaseId);
+    const position = String(activeLog.position);
+    const remaining = computeRemainingForPhase(phaseId, position);
 
     if (remaining <= 0) {
-      alert("Nothing remaining to finish.");
+      alert(t("machineOperator.alerts.nothingRemainingToFinish"));
       return;
     }
 
     let quantityDone = remaining;
 
     if (isPartial) {
-      const qtyStr = prompt(`Enter quantity (1–${remaining}):`);
+      const qtyStr = prompt(t("machineOperator.prompts.enterQuantity", { remaining }));
       if (qtyStr === null) return;
 
       const qty = parseInt(qtyStr.trim(), 10);
       if (!Number.isFinite(qty) || qty <= 0 || qty > remaining) {
-        alert("Invalid quantity.");
+        alert(t("machineOperator.alerts.invalidQuantity"));
         return;
       }
       quantityDone = qty;
@@ -775,7 +745,6 @@ const MachineOperatorView: React.FC = () => {
     clearStageTimer();
     const productionSeconds = stageSeconds;
 
-    // we'll decide consume AFTER loading finishes
     const finishedPhaseId = phaseId;
     const shouldAskConsume = ["2", "30"].includes(finishedPhaseId) && quantityDone > 0;
 
@@ -786,9 +755,7 @@ const MachineOperatorView: React.FC = () => {
       await api.finishPhase(activeLog.id, new Date().toISOString(), quantityDone, productionSeconds);
 
       if (user) {
-        api.stopLivePhase(user.username).catch((e) =>
-          console.error("finishProductionStage stop live error:", e)
-        );
+        api.stopLivePhase(user.username).catch((e) => console.error("finishProductionStage stop live error:", e));
       }
 
       setActiveLog(null);
@@ -802,12 +769,11 @@ const MachineOperatorView: React.FC = () => {
     } catch (e) {
       console.error("finishProductionStage error:", e);
       setError((e as Error).message);
-      return; // don't continue to consume flow on failure
+      return;
     } finally {
-      setIsLoading(false); // ✅ IMPORTANT: turn off loading BEFORE consume UI
+      setIsLoading(false);
     }
 
-    // ✅ NOW we are not in loading screen, safe to show consume prompt + UI
     if (!shouldAskConsume) return;
 
     const confirmConsume = await openModal(
@@ -821,27 +787,21 @@ const MachineOperatorView: React.FC = () => {
 
     if (!confirmConsume) return;
 
-    // ✅ allow ConfirmModal to unmount before opening another modal/UI
-    await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-    );
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
-    // IMPORTANT: don't rely on stale materialInfo; fetch fresh list
     const freshMaterials = await api.getMaterials();
-
     const candidates = resolveMaterialsForPhase(updatedSheet ?? sheet, freshMaterials);
 
     if (!candidates.length) {
       await openModal(
         t("machineOperator.noMaterialsTitle"),
         t("machineOperator.noMaterialsMessage"),
-        [{ label: "OK", type: "primary", onClick: () => closeModal(false) }]
+        [{ label: t("common.ok"), type: "primary", onClick: () => closeModal(false) }]
       );
       return;
     }
 
     setConsumeAction(null);
-    // open selection UI
     setConsumeFlow({
       open: true,
       phaseId: finishedPhaseId,
@@ -850,25 +810,23 @@ const MachineOperatorView: React.FC = () => {
       selectedMaterial: null,
     });
 
-    // keep the top info updated
     setMaterialInfo(candidates);
   };
 
-    /* ---------------------------------------------------------
-      RESET
-    --------------------------------------------------------- */
-    const resetView = () => {
-      setSheet(null);
-      setError(null);
-      setActiveLog(null);
-      clearStageTimer();
-      setStageSeconds(0);
-      setCurrentStage(null);
-      setCurrentStagePhaseId(null);
-      setPendingStageTimes({});
-      setViewState("idle");
-    };
-
+  /* ---------------------------------------------------------
+     RESET
+  --------------------------------------------------------- */
+  const resetView = () => {
+    setSheet(null);
+    setError(null);
+    setActiveLog(null);
+    clearStageTimer();
+    setStageSeconds(0);
+    setCurrentStage(null);
+    setCurrentStagePhaseId(null);
+    setPendingStageTimes({});
+    setViewState("idle");
+  };
 
   /* ---------------------------------------------------------
      SCANNING
@@ -885,47 +843,56 @@ const MachineOperatorView: React.FC = () => {
         />
         {isLoading && (
           <div className="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center">
-            <div className="bg-white rounded-lg shadow-xl px-6 py-4">
-              {t("common.loading")}
-            </div>
+            <div className="bg-white rounded-lg shadow-xl px-6 py-4">{t("common.loading")}</div>
           </div>
         )}
         <div className="max-w-xl mx-auto">
-          <Scanner
-            onScanSuccess={handleScanSuccess}
-            onScanError={(msg) => setError(msg)}
-          />
-          <button
-            onClick={() => setViewState("idle")}
-            className="mt-4 w-full bg-gray-500 text-white py-2 rounded-md"
-          >
+          <Scanner onScanSuccess={handleScanSuccess} onScanError={(msg) => setError(msg)} />
+          <button onClick={() => setViewState("idle")} className="mt-4 w-full bg-gray-500 text-white py-2 rounded-md">
             {t("common.cancel")}
           </button>
 
-          {error && (
-            <p className="mt-4 text-red-500 bg-red-100 p-3 rounded-md">
-              {error}
-            </p>
-          )}
+          {error && <p className="mt-4 text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
         </div>
       </>
     );
 
-
   /* ---------------------------------------------------------
-    BLOCK IF DEAD TIME IS ACTIVE
+    BLOCK IF DEAD TIME or MULTI-JOB IS ACTIVE
   --------------------------------------------------------- */
   if (activeDeadTime) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
-        <h2 className="text-2xl font-bold mb-4">Active Dead Time</h2>
+        <h2 className="text-2xl font-bold mb-4">{t("machineOperator.deadTime.activeTitle")}</h2>
         <p className="mb-2">
-          <strong>Code:</strong> {activeDeadTime.code}
+          <strong>{t("machineOperator.deadTime.codeLabel")}:</strong> {activeDeadTime.code}
         </p>
+        <p className="text-sm text-gray-600 mb-4">{t("machineOperator.deadTime.blockMessage")}</p>
+      </div>
+    );
+  }
+
+  if (activeMultiJob) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
+        <h2 className="text-2xl font-bold mb-4">
+          {t("machineOperator.multiJob.activeTitle")}
+        </h2>
+
         <p className="text-sm text-gray-600 mb-4">
-          You cannot start or resume production while a dead-time is active.
-          Finish it from the Dead Time tab.
+          {t("machineOperator.multiJob.blockMessage")}
         </p>
+
+        <button
+          className="w-full bg-gray-500 text-white py-2 rounded-md"
+          onClick={() => {
+            setActiveMultiJob(null);
+            setError(null);
+            setViewState("idle");
+          }}
+        >
+          {t("common.ok")}
+        </button>
       </div>
     );
   }
@@ -934,12 +901,12 @@ const MachineOperatorView: React.FC = () => {
      DETAILS GUARDS
   --------------------------------------------------------- */
   if (viewState === "details") {
-    if (!sheet) return <div style={{ padding: 20 }}>DEBUG: no sheet</div>;
+    if (!sheet) return <div style={{ padding: 20 }}>{t("machineOperator.errors.noSheetLoaded")}</div>;
 
     if (!sheet.product || !Array.isArray(sheet.product.phases))
       return (
         <div style={{ padding: 20 }}>
-          Invalid sheet structure
+          {t("machineOperator.errors.invalidSheetStructure")}
           <br />
           {JSON.stringify(sheet, null, 2)}
         </div>
@@ -963,29 +930,22 @@ const MachineOperatorView: React.FC = () => {
         />
         {isLoading && (
           <div className="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center">
-            <div className="bg-white rounded-lg shadow-xl px-6 py-4">
-              {t("common.loading")}
-            </div>
+            <div className="bg-white rounded-lg shadow-xl px-6 py-4">{t("common.loading")}</div>
           </div>
         )}
         <div className="bg-white p-6 rounded-lg shadow-lg max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold mb-4">
-            {t("machineOperator.sheetDetails")}
-          </h2>
+          <h2 className="text-2xl font-bold mb-4">{t("machineOperator.sheetDetails")}</h2>
 
           {/* SHEET INFO */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-md">
             <p>
-              <strong>{t("machineOperator.orderNum")}:</strong>{" "}
-              {sheet.orderNumber}
+              <strong>{t("machineOperator.orderNum")}:</strong> {sheet.orderNumber}
             </p>
             <p>
-              <strong>{t("machineOperator.sheetNum")}:</strong>{" "}
-              {sheet.productionSheetNumber}
+              <strong>{t("machineOperator.sheetNum")}:</strong> {sheet.productionSheetNumber}
             </p>
             <p>
-              <strong>{t("machineOperator.product")}:</strong>{" "}
-              {sheet.productId}
+              <strong>{t("machineOperator.product")}:</strong> {sheet.productId}
             </p>
             <p>
               <strong>{t("machineOperator.qty")}:</strong> {sheet.quantity}
@@ -995,25 +955,21 @@ const MachineOperatorView: React.FC = () => {
           {/* MATERIAL INFO */}
           {Array.isArray(materialInfo) && materialInfo.length > 0 && (
             <div className="p-4 my-4 border rounded-md bg-indigo-50">
-              <h4 className="font-semibold mb-2">
-                {t("machineOperator.materialInfo")}
-              </h4>
+              <h4 className="font-semibold mb-2">{t("machineOperator.materialInfo")}</h4>
 
               <div className="space-y-3">
                 {materialInfo.map((mat) => (
                   <div key={mat.id} className="p-3 bg-white border rounded-md">
                     <p>
-                      <strong>{t("common.material")}:</strong>{" "}
-                      {mat.materialCode}
+                      <strong>{t("common.material")}:</strong> {mat.materialCode}
                     </p>
                     <p>
-                      <strong>{t("common.quantity")}:</strong>{" "}
-                      {mat.currentQuantity} / {mat.initialQuantity}
+                      <strong>{t("common.quantity")}:</strong> {mat.currentQuantity} / {mat.initialQuantity}
                     </p>
                     <p>
                       <strong>{t("common.location")}:</strong>{" "}
                       {mat.location
-                        ? `${mat.location.area}, Pos ${mat.location.position}`
+                        ? `${mat.location.area}, ${t("common.position")} ${mat.location.position}`
                         : t("common.na")}
                     </p>
                   </div>
@@ -1025,29 +981,24 @@ const MachineOperatorView: React.FC = () => {
           {/* FRAME INFO */}
           {Array.isArray(frameInfo) && frameInfo.length > 0 && (
             <div className="p-4 my-4 border rounded-md bg-emerald-50">
-              <h4 className="font-semibold mb-2">
-                {t("machineOperator.frameInfo") ?? "Frame Information"}
-              </h4>
+              <h4 className="font-semibold mb-2">{t("machineOperator.frameInfo")}</h4>
 
               <div className="space-y-3">
                 {frameInfo.map((f) => (
                   <div key={f.frameId} className="p-3 bg-white border rounded-md">
                     <p>
-                      <strong>Frame:</strong> FRAME {f.frameId}
+                      <strong>{t("machineOperator.frame.fields.frame")}:</strong> {t("machineOperator.frame.framePrefix")}{" "}
+                      {f.frameId}
                     </p>
                     <p>
-                      <strong>Position:</strong>{" "}
-                      {f.position ?? "—"}
+                      <strong>{t("machineOperator.frame.fields.position")}:</strong> {f.position ?? t("common.na")}
                     </p>
                     <p>
-                      <strong>Quality:</strong>{" "}
-                      {f.quality ?? "—"}
+                      <strong>{t("machineOperator.frame.fields.quality")}:</strong> {f.quality ?? t("common.na")}
                     </p>
                     <p>
-                      <strong>Size:</strong>{" "}
-                      {f.widthCm && f.heightCm
-                        ? `${f.widthCm} × ${f.heightCm} cm`
-                        : "—"}
+                      <strong>{t("machineOperator.frame.fields.size")}:</strong>{" "}
+                      {f.widthCm && f.heightCm ? `${f.widthCm} × ${f.heightCm} cm` : t("common.na")}
                     </p>
                   </div>
                 ))}
@@ -1055,14 +1006,12 @@ const MachineOperatorView: React.FC = () => {
             </div>
           )}
 
-          {/* CONSUME FLOW: SELECT MATERIAL (MODAL WINDOW) */}
+          {/* CONSUME FLOW: SELECT MATERIAL */}
           {consumeFlow.open && !consumeFlow.selectedMaterial && (
             <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[60] p-4">
               <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
                 <div className="p-5 border-b flex justify-between items-center">
-                  <h4 className="text-xl font-semibold text-gray-800">
-                    {t("machineOperator.selectMaterialTitle")}
-                  </h4>
+                  <h4 className="text-xl font-semibold text-gray-800">{t("machineOperator.selectMaterialTitle")}</h4>
 
                   <button
                     onClick={() =>
@@ -1075,6 +1024,7 @@ const MachineOperatorView: React.FC = () => {
                       })
                     }
                     className="text-gray-400 hover:text-gray-600"
+                    aria-label={t("common.close")}
                   >
                     ✕
                   </button>
@@ -1094,16 +1044,14 @@ const MachineOperatorView: React.FC = () => {
                         key={m.id}
                         type="button"
                         className="w-full text-left p-3 bg-white border rounded-md hover:bg-gray-50"
-                        onClick={() =>
-                          setConsumeFlow((prev) => ({ ...prev, selectedMaterial: m }))
-                        }
+                        onClick={() => setConsumeFlow((prev) => ({ ...prev, selectedMaterial: m }))}
                       >
                         <div className="flex justify-between items-start gap-3">
                           <div>
                             <div className="font-mono">{m.materialCode}</div>
                             <div className="text-xs text-gray-600">
                               {m.location
-                                ? `${m.location.area}, Pos ${m.location.position}`
+                                ? `${m.location.area}, ${t("common.position")} ${m.location.position}`
                                 : t("common.na")}
                             </div>
                           </div>
@@ -1129,7 +1077,7 @@ const MachineOperatorView: React.FC = () => {
                         })
                       }
                     >
-                      {t("machineOperator.cancel")}
+                      {t("common.cancel")}
                     </button>
                   </div>
                 </div>
@@ -1137,22 +1085,20 @@ const MachineOperatorView: React.FC = () => {
             </div>
           )}
 
-          {/* CONSUME FLOW: CHOOSE ACTION (MODAL WINDOW) */}
+          {/* CONSUME FLOW: CHOOSE ACTION */}
           {consumeFlow.open && consumeFlow.selectedMaterial && !consumeAction && (
             <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[60] p-4">
               <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="p-5 border-b flex justify-between items-center">
-                  <h4 className="text-xl font-semibold text-gray-800">
-                    {t("machineOperator.consumeActionTitle")}
-                  </h4>
+                  <h4 className="text-xl font-semibold text-gray-800">{t("machineOperator.consumeActionTitle")}</h4>
 
                   <button
                     onClick={() => {
-                      // back to picker (or cancel everything if you prefer)
                       setConsumeAction(null);
                       setConsumeFlow((prev) => ({ ...prev, selectedMaterial: null }));
                     }}
                     className="text-gray-400 hover:text-gray-600"
+                    aria-label={t("common.close")}
                   >
                     ✕
                   </button>
@@ -1165,8 +1111,8 @@ const MachineOperatorView: React.FC = () => {
                       <span className="font-mono">{consumeFlow.selectedMaterial.materialCode}</span>
                     </div>
                     <div className="mt-1">
-                      <strong>{t("common.quantity")}:</strong>{" "}
-                      {consumeFlow.selectedMaterial.currentQuantity} / {consumeFlow.selectedMaterial.initialQuantity}
+                      <strong>{t("common.quantity")}:</strong> {consumeFlow.selectedMaterial.currentQuantity} /{" "}
+                      {consumeFlow.selectedMaterial.initialQuantity}
                     </div>
                   </div>
 
@@ -1193,19 +1139,17 @@ const MachineOperatorView: React.FC = () => {
                       type="button"
                       className="w-1/2 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300"
                       onClick={() => {
-                        // back to picker
                         setConsumeAction(null);
                         setConsumeFlow((prev) => ({ ...prev, selectedMaterial: null }));
                       }}
                     >
-                      {t("common.back") ?? "Back"}
+                      {t("common.back")}
                     </button>
 
                     <button
                       type="button"
                       className="w-1/2 bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600"
                       onClick={() => {
-                        // cancel consume flow completely
                         setConsumeAction(null);
                         setConsumeFlow({
                           open: false,
@@ -1216,7 +1160,7 @@ const MachineOperatorView: React.FC = () => {
                         });
                       }}
                     >
-                      {t("machineOperator.cancel")}
+                      {t("common.cancel")}
                     </button>
                   </div>
                 </div>
@@ -1224,7 +1168,7 @@ const MachineOperatorView: React.FC = () => {
             </div>
           )}
 
-          {/* ✅ CONSUME FLOW: ACTION MODAL */}
+          {/* CONSUME FLOW: ACTION MODAL */}
           {consumeAction && consumeFlow.selectedMaterial && (
             <ActionModal
               actionType={consumeAction}
@@ -1248,61 +1192,44 @@ const MachineOperatorView: React.FC = () => {
           )}
 
           {/* PHASES */}
-          <h3 className="text-xl font-semibold mb-2">
-            {t("machineOperator.phases")}
-          </h3>
+          <h3 className="text-xl font-semibold mb-2">{t("machineOperator.phases")}</h3>
 
           <div className="space-y-3">
-            {sheet.product.phases.map((phase: any, index: number) => {
-              const phaseId = String(phase.phaseId);
-
-              const status = phaseStatuses.get(phaseId) || {
+            {sortedPhases.map((phase: any, index: number) => {
+              const phaseKey = phaseKeyOf(phase);
+              const status = phaseStatuses.get(phaseKey) || {
                 done: 0,
                 total: sheet.quantity,
                 inProgress: false,
               };
 
               const isUnlocked =
-                index === 0 ||
-                (phaseStatuses.get(
-                  String(sheet.product.phases[index - 1].phaseId)
-                )?.done || 0) > 0;
+                index === 0 || (phaseStatuses.get(phaseKeyOf(sortedPhases[index - 1]))?.done || 0) > 0;
 
               const prevDone =
-                index === 0
-                  ? sheet.quantity
-                  : phaseStatuses.get(
-                      String(sheet.product.phases[index - 1].phaseId)
-                    )?.done || 0;
+                index === 0 ? sheet.quantity : phaseStatuses.get(phaseKeyOf(sortedPhases[index - 1]))?.done || 0;
 
               const canStartQty = Math.max(0, prevDone - status.done);
 
               const hasSetup =
-                (sheet.product.phases.find(
-                  (p: any) => String(p.phaseId) === phaseId
-                )?.setupTime || 0) > 0;
+                (sheet.product.phases.find((p: any) => String(p.phaseId) === phase.phaseId)?.setupTime || 0) > 0;
 
               const isPhaseLocked = canStartQty <= 0;
 
-              const isMyCurrentPhase =
-                currentStagePhaseId === phaseId && currentStage !== null;
-              const isRunningFind =
-                isMyCurrentPhase && currentStage === "find";
-              const isRunningSetup =
-                isMyCurrentPhase && currentStage === "setup";
-              const isRunningProduction =
-                isMyCurrentPhase && currentStage === "production";
+              const isMyCurrentPhase = currentStagePhaseId === phase.phaseId && currentStage !== null;
+              const isRunningFind = isMyCurrentPhase && currentStage === "find";
+              const isRunningSetup = isMyCurrentPhase && currentStage === "setup";
+              const isRunningProduction = isMyCurrentPhase && currentStage === "production";
+
+              const isInProgress = logs.some((l) => !l.endTime && phaseKeyOf(l) === phaseKeyOf(phase));
 
               return (
-                <div
-                  key={phaseId}
-                  className="p-3 border rounded-md flex justify-between items-center bg-white"
-                >
-                  {/* LEFT SIDE */}
+                <div  key={phaseKey} className="p-3 border rounded-md bg-white flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+                  {/* LEFT */}
                   <div>
                     <p className="font-bold text-lg">
-                      {phases.find((p) => String(p.id) === phaseId)?.name ||
-                        `Phase ${phaseId}`}
+                      {phases.find((p) => String(p.id) === phase.phaseId)?.name ||
+                        t("machineOperator.phaseFallback", { id: phase.phaseId })}
                     </p>
 
                     <div className="text-sm text-gray-600 space-y-1">
@@ -1313,165 +1240,123 @@ const MachineOperatorView: React.FC = () => {
                         </span>
                       </p>
 
-                      {/* IN PROGRESS */}
-                      {logs.some(
-                        (l) => !l.endTime && String(l.phaseId) === phaseId
-                      ) && (
+                      {isInProgress && (
                         <p className="text-yellow-600">
-                          🟡 In progress by{" "}
+                          🟡 {t("machineOperator.inProgressBy")}{" "}
                           {logs
-                            .filter(
-                              (l) =>
-                                !l.endTime &&
-                                String(l.phaseId) === phaseId
-                            )
+                            .filter((l) => !l.endTime && phaseKeyOf(l) === phaseKeyOf(phase))
                             .map((l) => l.operatorUsername)
                             .join(", ")}
                         </p>
                       )}
 
-                      {/* DONE */}
-                      {logs.some(
-                        (l) => l.endTime && String(l.phaseId) === phaseId
-                      ) && (
-                        <p className="text-green-700">
-                          ✅ Done by{" "}
-                          {logs
-                            .filter(
-                              (l) =>
-                                l.endTime &&
-                                String(l.phaseId) === phaseId &&
-                                (l.quantityDone || 0) > 0
-                            )
-                            .map(
-                              (l) =>
-                                `${l.operatorUsername} (${l.quantityDone})`
-                            )
-                            .join(", ")}
-                        </p>
-                      )}
+                      {(() => {
+                        const matchingFinishedLogs = (sheet?.phaseLogs || []).filter(
+                          (l) => l.endTime && phaseKeyOf(l) === phaseKeyOf(phase) && (l.quantityDone || 0) > 0
+                        );
+
+                        if (matchingFinishedLogs.length > 0) {
+                          return (
+                            <p className="text-green-700 text-sm mt-1">
+                              ✅ {t("machineOperator.quantityDone")}{" "}
+                              {matchingFinishedLogs
+                                .map((l) => `${l.operatorUsername} (${l.quantityDone})`)
+                                .join(", ")}
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
 
-                  {/* RIGHT SIDE */}
-                  <div className="flex flex-col items-end gap-2">
-                    {/* FIND / SETUP */}
-                    {(isRunningFind || isRunningSetup) && (
+                  {/* RIGHT */}
+                  <div className="w-full sm:w-auto flex flex-col gap-2 items-stretch sm:items-end">
+                    {(isRunningFind || isRunningSetup) && !isPhaseLocked && (
                       <div className="flex flex-col items-end gap-1">
-                        <button
-                          onClick={finishSimpleStage}
-                          className="btn-secondary"
-                        >
+                        <button onClick={finishSimpleStage} className="btn-secondary">
                           {t("machineOperator.finish")}
                         </button>
-                        <p className="text-xs text-gray-500">
-                          {currentStage === "find"
-                            ? `Finding Material: ${stageSeconds}s`
-                            : `Setup: ${stageSeconds}s`}
-                        </p>
                       </div>
                     )}
 
-                    {/* PRODUCTION */}
-                    {isRunningProduction && (
+                    {isRunningProduction && !isPhaseLocked && isInProgress && (
                       <div className="flex flex-col items-end gap-1">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => finishProductionStage(true)}
-                            className="btn-secondary"
-                          >
+                        <div className="w-full sm:w-auto grid grid-cols-2 gap-2">
+                          <button onClick={() => finishProductionStage(true)} className="btn-secondary">
                             {t("machineOperator.finishPartial")}
                           </button>
-                          <button
-                            onClick={() => finishProductionStage(false)}
-                            className="btn-primary"
-                          >
+                          <button onClick={() => finishProductionStage(false)} className="btn-primary">
                             {t("machineOperator.finishFull")}
                           </button>
                         </div>
-
-                        <p className="text-xs text-gray-500">
-                          Production: {stageSeconds}s
-                        </p>
                       </div>
                     )}
 
-                    {/* START BUTTONS */}
                     {!currentStage && !isPhaseLocked && isUnlocked && (
                       <div className="flex flex-col items-end gap-2">
-                        {(phaseId === "2" || phaseId === "30") && (
+                        {(phase.phaseId === "2" || phase.phaseId === "30") && (
                           <button
-                            onClick={() =>
-                              startSimpleStage(phaseId, "find")
-                            }
+                            onClick={() => startSimpleStage(phase.phaseId, "find", phase.position)}
                             className="btn-secondary"
                           >
-                            Find Material
+                            {t("machineOperator.buttons.findMaterial")}
                           </button>
                         )}
 
                         {hasSetup && (
                           <button
-                            onClick={() =>
-                              startSimpleStage(phaseId, "setup")
-                            }
+                            onClick={() => startSimpleStage(phase.phaseId, "setup", phase.position)}
                             className="btn-secondary"
                           >
-                            Start Setup
+                            {t("machineOperator.buttons.startSetup")}
                           </button>
                         )}
 
-                        <button
-                          onClick={() => startProductionStage(phaseId)}
-                          className="btn-primary"
-                        >
-                          Start Production
+                        <button onClick={() => startProductionStage(phase.phaseId, phase.position)} className="btn-primary">
+                          {t("machineOperator.buttons.startProduction")}
                         </button>
                       </div>
                     )}
 
-                    {/* BUSY */}
                     {currentStage && !isMyCurrentPhase && (
-                      <p className="text-xs text-gray-400">
-                        Busy on another phase…
-                      </p>
+                      <p className="text-xs text-gray-400">{t("machineOperator.busyAnotherPhase")}</p>
                     )}
 
-                    {/* DONE PHASE */}
-                    {isPhaseLocked && (
-                      <p className="text-xs text-gray-400">
-                        Phase complete
-                      </p>
-                    )}
+                    {isPhaseLocked && <p className="text-xs text-gray-400">{t("machineOperator.phaseLocked")}</p>}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* BOTTOM BUTTON */}
-          <button
-            onClick={resetView}
-            className="mt-6 w-full text-indigo-600 hover:underline"
-          >
+          {/* BOTTOM */}
+          <button onClick={resetView} className="mt-6 w-full text-indigo-600 hover:underline">
             {t("operator.scanAnother")}
           </button>
 
-          {/* BUTTON STYLES */}
           <style>{`
+            .btn-primary, .btn-secondary{
+              width: 100%;
+              box-sizing: border-box;
+              padding: .5rem 1rem;
+              border-radius: 6px;
+              font-weight: 500;
+              white-space: normal; /* allow wrapping on small screens */
+              word-break: break-word;
+            }
             .btn-primary{
-              padding:.5rem 1rem;
               background:#4F46E5;
               color:#fff;
-              border-radius:6px;
-              font-weight:500;
             }
             .btn-secondary{
-              padding:.5rem 1rem;
               background:#E5E7EB;
               color:#374151;
-              border-radius:6px;
-              font-weight:500;
+            }
+            @media (min-width: 640px){
+              .btn-primary, .btn-secondary{
+                width: auto;
+              }
             }
           `}</style>
         </div>
@@ -1493,9 +1378,7 @@ const MachineOperatorView: React.FC = () => {
       />
       {isLoading && (
         <div className="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-xl px-6 py-4">
-            {t("common.loading")}
-          </div>
+          <div className="bg-white rounded-lg shadow-xl px-6 py-4">{t("common.loading")}</div>
         </div>
       )}
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto text-center">
@@ -1503,17 +1386,37 @@ const MachineOperatorView: React.FC = () => {
         <p className="text-gray-600 mb-6">{t("machineOperator.scanPrompt")}</p>
 
         <button
-          onClick={() => setViewState("scanning")}
+          onClick={async () => {
+            if (!user?.username) return;
+
+            try {
+              const status = await api.getLiveStatus();
+
+              const myDead = (status.dead || []).find((d: any) => d.username === user.username);
+              if (myDead) {
+                setActiveDeadTime(myDead);
+                return;
+              }
+
+              const myMulti = (status.active || []).find(
+                (x: any) => x.username === user.username && String(x.status || "") === "multi"
+              );
+              if (myMulti) {
+                setActiveMultiJob(myMulti);
+                return;
+              }
+
+              setViewState("scanning");
+            } catch (e) {
+              setError((e as Error).message);
+            }
+          }}
           className="w-full bg-indigo-600 text-white py-3 rounded-md"
         >
           {t("machineOperator.startScan")}
         </button>
 
-        {error && (
-          <p className="mt-4 text-red-500 bg-red-100 p-3 rounded-md">
-            {error}
-          </p>
-        )}
+        {error && <p className="mt-4 text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
       </div>
     </>
   );

@@ -321,6 +321,18 @@ const ProductDefinition: React.FC<{
 
     const newProdPos = String(normalizeTo10((maxProdPos || 0) + 10));
 
+    const extraIndex = (phases: any[]) => {
+      let max = 0;
+
+      for (const p of phases || []) {
+        const pos = String(p.position ?? "");
+        const m = pos.match(/^EXTRA-(\d+)$/i);
+        if (m) max = Math.max(max, parseInt(m[1], 10));
+      }
+
+      return max + 1;
+    };
+
     copy.phases.push({
       __uid: makeUid(),
       phaseId: phasesList[0]?.id || "",
@@ -328,7 +340,7 @@ const ProductDefinition: React.FC<{
       totalSetupTime: 0,
       productionTimePerPiece: 0,
       totalProductionTime: 0,
-      position: "EXTRA",
+      position: `EXTRA-${extraIndex(copy.phases)}`,
       productionPosition: newProdPos,
     });
 

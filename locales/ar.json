@@ -17,10 +17,13 @@
     "back": "رجوع",
     "dash": "—",
     "saving": "جارٍ الحفظ...",
-    "reset": "إعادة ضبط"
+    "reset": "إعادة ضبط",
+    "ok": "حسنًا",
+    "position": "الموضع",
+    "add": "إضافة" 
   },
   "header": {
-    "title": "تطبيق Rentron",
+    "title": "Production Rentron",
     "welcome": "مرحبًا",
     "logout": "تسجيل الخروج"
   },
@@ -50,10 +53,11 @@
     "account": "إعدادات الحساب",
     "dead-time": "وقت التوقف",
     "frames": "بحث الإطارات",
-    "material-use": "استهلاك المواد"
+    "material-use": "استهلاك المواد",
+    "multi-jobs": "مهام متوازية"
   },
   "login": {
-    "title": "تطبيق Rentron",
+    "title": "Production Rentron",
     "subtitle": "يرجى تسجيل الدخول إلى حسابك",
     "usernamePlaceholder": "اسم المستخدم",
     "passwordPlaceholder": "كلمة المرور",
@@ -214,6 +218,7 @@
     }
   },
   "orderkeeper": {
+    "productionPosition": "ترتيب الإنتاج",
     "lockedTag": "مقفلة",
     "removePhase": "إزالة مرحلة",
     "moveUp": "نقل للأعلى",
@@ -329,7 +334,80 @@
     "consumeActionTitle": "إجراء الاستهلاك",
     "partialConsumptionRelocate": "استهلاك جزئي + نقل",
     "fullConsumption": "استهلاك كامل",
-    "cancel": "إلغاء"
+    "cancel": "إلغاء",
+    "inProgressBy": "قيد التنفيذ بواسطة",
+    "busyAnotherPhase": "مشغول بمرحلة أخرى…",
+    "phaseLocked": "المرحلة مقفلة",
+    "phaseFallback": "المرحلة {{id}}",
+    "finish": "إنهاء",
+
+    "stages": {
+      "find": "بحث عن المواد",
+      "setup": "إعداد",
+      "production": "إنتاج"
+    },
+
+    "buttons": {
+      "findMaterial": "بحث عن المواد",
+      "startSetup": "بدء الإعداد",
+      "startProduction": "بدء الإنتاج",
+      "finishIt": "إنهاؤها"
+    },
+
+    "timers": {
+      "findingMaterial": "بحث عن المواد: {{seconds}}ث",
+      "setup": "الإعداد: {{seconds}}ث",
+      "production": "الإنتاج: {{seconds}}ث"
+    },
+
+    "modals": {
+      "activeJobTitle": "مهمة نشطة قيد التنفيذ",
+      "activeJobMessage": "لديك بالفعل مهمة تعمل على ورقة إنتاج أخرى.",
+
+      "deadTimeRunningTitle": "وقت توقف نشط",
+      "deadTimeRunningMessage": "لديك وقت توقف نشط. أنهِه قبل بدء أي مرحلة.",
+
+      "stageStillRunningTitle": "{{stage}} ما زالت قيد التنفيذ",
+      "stageStillRunningMessage": "لديك سجل نشط لـ {{stage}}. هل تريد إنهاءه أولاً؟"
+    },
+
+    "alerts": {
+      "nothingToStart": "لا يوجد ما يمكن بدءه.",
+      "nothingRemainingToFinish": "لا يوجد شيء متبقٍ لإنهائه.",
+      "invalidQuantity": "الكمية غير صالحة."
+    },
+
+    "prompts": {
+      "enterQuantity": "أدخل الكمية (1–{{remaining}}):"
+    },
+
+    "errors": {
+      "noActiveLogToFinish": "لا يوجد سجل نشط لإنهائه (قد يكون بدء المرحلة فشل).",
+      "noSheetLoaded": "DEBUG: لا توجد ورقة محمّلة",
+      "invalidSheetStructure": "بنية الورقة غير صالحة"
+    },
+
+    "deadTime": {
+      "activeTitle": "وقت توقف نشط",
+      "codeLabel": "الرمز",
+      "blockMessage": "لا يمكنك بدء أو استئناف الإنتاج أثناء وجود وقت توقف نشط. أنهِه من تبويب وقت التوقف."
+    },
+
+    "multiJob": {
+      "activeTitle": "جلسة المهام المتعددة قيد التشغيل",
+      "blockMessage": "لا يمكنك المسح أو بدء مراحل فردية أثناء نشاط جلسة المهام المتعددة. أوقف/أنهِ جلسة المهام المتعددة أولاً."
+    },    
+
+    "frameInfo": "معلومات الإطارات",
+    "frame": {
+      "framePrefix": "إطار",
+      "fields": {
+        "frame": "الإطار",
+        "position": "الموضع",
+        "quality": "الجودة",
+        "size": "المقاس"
+      }
+    }
   },
   "infraOperator": {
     "title": "سجل العمليات اليومية",
@@ -563,7 +641,7 @@
   },
   "livePhases": {
     "title": "مراحل العمل المباشرة",
-
+    "multiJobs": "المهام",
     "activeNow": "نشط الآن",
     "activeDeadTime": "وقت التوقف النشط",
     "idleUsers": "المستخدمون غير النشطين",
@@ -628,7 +706,10 @@
       "printMaterialTicketsFull": "طباعة تذاكر المواد (Full)",
       "printStickerLayout": "طباعة تخطيط Sticker",
       "printFullLayout": "طباعة التخطيط الكامل",
-      "close": "إغلاق"
+      "close": "إغلاق",
+      "exportPhasesXlsx": "تصدير المراحل (XLSX)",
+      "exportingXlsx": "جارٍ التصدير...",
+      "exportXlsxFailed": "فشل تصدير ملف XLSX"
     },
     "errors": {
       "parseFailed": "فشل تحليل PDF",
@@ -663,8 +744,73 @@
       "printMaterialTicketsTitle": "طباعة تذاكر المواد",
       "printPdfTitle": "طباعة PDF"
     }
+  },
+  "multiJob": {
+    "title": "مؤقّت تعدد المهام",
+    "subtitle": "امسح أوراق الإنتاج، اختر المراحل، ثم ابدأ مؤقّتاً واحداً ليقسّم الوقت تلقائياً إلى سجلات.",
+    "startScanning": "بدء المسح",
+    "working": "جارٍ المعالجة…",
+
+    "alreadyAddedTag": "مضاف مسبقاً",
+
+    "buttons": {
+      "addJob": "إضافة مهمة",
+      "added": "تمت الإضافة",
+      "remove": "إزالة",
+      "addAnotherScan": "أضف مهمة أخرى (مسح)",
+      "startSessionTimer": "بدء مؤقّت الجلسة",
+      "stopAndCreateLogs": "إيقاف وإنشاء السجلات",
+      "stopLiveSession": "إيقاف الجلسة المباشرة",
+      "keepRunning": "متابعة التشغيل"
+    },
+
+    "pickPhase": {
+      "title": "اختر مرحلة",
+      "sheetLine": "ورقة: {{sheet}} • طلب: {{order}} • منتج: {{product}} • الكمية: {{qty}}",
+      "rowMeta": "المتبقي: {{remaining}} • productionPosition: {{pos}} • المخطط: {{planned}} دقيقة"
+    },
+
+    "build": {
+      "title": "المهام في الجلسة",
+      "empty": "لم تتم إضافة أي مهام بعد. امسح رمز QR لإضافة أول مهمة.",
+      "rowMeta": "ورقة: {{sheet}} • productionPosition: {{pos}} • المخطط: {{planned}} دقيقة"
+    },
+
+    "running": {
+      "title": "الجلسة قيد التشغيل",
+      "jobsSelected": "تم اختيار {{count}} مهام"
+    },
+
+    "phase": {
+      "fallback": "مرحلة {{id}}"
+    },
+
+    "modal": {
+      "foundTitle": "تم العثور على جلسة تعدد المهام",
+      "noSavedListMessage": "هناك جلسة تعدد مهام مباشرة قيد التشغيل، ولكن لم يتم العثور على قائمة مهام محفوظة للاستعادة. هل تريد إيقاف الجلسة المباشرة؟",
+      "stopLiveSession": "إيقاف الجلسة المباشرة",
+      "keepRunning": "متابعة التشغيل"
+    },
+
+    "prompt": {
+      "quantityDone": "الكمية المنجزة لـ:\n{{phaseName}}\nورقة: {{sheet}}\nالافتراضي = {{remaining}}\n\nأدخل 0-{{remaining}}:"
+    },
+
+    "errors": {
+      "notLoggedIn": "لم يتم تسجيل الدخول.",
+      "deadTimeActive": "وقت التوقف (Downtime) نشط. أنهِه قبل تعدد المهام.",
+      "activeLiveSession": "لديك جلسة مباشرة نشطة بالفعل. استأنفها/أوقفها أولاً.",
+      "activeSingleJob": "لديك مهمة واحدة نشطة بالفعل. أنهِها أولاً.",
+      "needAtLeastTwoJobs": "أضف مهمتين على الأقل لحساب وقت تعدد المهام.",
+      "nothingRemaining": "لا يوجد متبقٍ لبدء هذه المرحلة.",
+      "duplicateJob": "هذه المهمة موجودة بالفعل ضمن قائمة تعدد المهام.",
+      "cancelled": "تم الإلغاء.",
+      "invalidQuantityForPhase": "كمية غير صالحة لـ {{phaseName}} (يجب أن تكون بين {{min}}-{{max}}).",
+      "stoppedNoRestore": "تم إيقاف جلسة تعدد المهام المباشرة (تعذّر استعادة المهام)."
+    }
   }
 }
+
 
 
 
