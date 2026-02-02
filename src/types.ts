@@ -205,6 +205,7 @@ export type FrameQuality = 90 | 120;
 
 export type MaterialUseUnit = "KG" | "m" | "cm" | "pcs" | "other";
 
+//export type ParsedMaterial = { code: string; sheetCount: number };
 
 /* ============================================================
    TRANSACTIONS (DB format)

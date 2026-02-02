@@ -628,7 +628,27 @@ export const parseOrderPdf = async (file: File): Promise<ParsedPdfMulti> => {
   return parsedData;
 };
 
-export async function parseMaterialsPdf(file: File): Promise<{ materials: string[] }> {
+export type ParsedMaterial = { code: string; sheetCount: number };
+
+export type ParsedMaterialsPdfPlacement = {
+  code: string;
+  blattY: number; // PDF units
+};
+
+export type ParsedMaterialsPdfPage = {
+  pageNumber: number;
+  pageIndex: number;
+  codes: string[];
+  sheetCount: number;
+  placements: ParsedMaterialsPdfPlacement[];
+};
+
+export type ParsedMaterialsPdf = {
+  materials: ParsedMaterial[];
+  pages: ParsedMaterialsPdfPage[];
+};
+
+export async function parseMaterialsPdf(file: File): Promise<ParsedMaterialsPdf> {
   const form = new FormData();
   form.append("file", file);
 
@@ -638,13 +658,11 @@ export async function parseMaterialsPdf(file: File): Promise<{ materials: string
     credentials: "include",
   });
 
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(txt);
-  }
-
+  if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
+
 
 
 export const updateMyPassword = async (oldPassword: string, newPassword: string) => {

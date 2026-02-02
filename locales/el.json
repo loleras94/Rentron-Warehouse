@@ -178,6 +178,15 @@
     }
   },
   "batchCreate": {
+    "stamp": {
+      "btn": "Αποθήκευση + Σφράγιση PDF με QR",
+      "working": "Επεξεργασία...",
+      "noParsedPdfs": "Δεν υπάρχουν parsed PDFs για σφράγιση.",
+      "needRowsOrSaved": "Βάλε τουλάχιστον 1 σωστή γραμμή (κωδικός + ποσότητα > 0) ή δημιούργησε υλικά πρώτα.",
+      "noMaterialsCreated": "Δεν δημιουργήθηκαν υλικά, οπότε δεν υπάρχει κάτι για σφράγιση.",
+      "noParsedPdfsTitle": "Κάνε πρώτα Parse στα PDFs.",
+      "needValidRowTitle": "Βάλε τουλάχιστον 1 σωστή γραμμή (κωδικός + ποσότητα > 0)."
+    },    
     "title": "Μαζική Δημιουργία Υλικών",
     "materialCodePlaceholder": "Κωδικός Υλικού",
     "quantityPlaceholder": "Ποσότητα",

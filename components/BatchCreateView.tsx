@@ -5,19 +5,26 @@ import type { Material, QrData } from "../src/types";
 import { renderToStaticMarkup } from "react-dom/server";
 import { useTranslation } from "../hooks/useTranslation";
 import * as api from "../api/client";
+import { PDFDocument, rgb } from "pdf-lib";
 
-type ParsedMaterialsPdf = { materials: string[] };
+type ParsedMaterial = { code: string; sheetCount: number };
+type ParsedMaterialsPdfPlacement = { code: string; blattY: number };
+
+type ParsedMaterialsPdfPage = {
+  pageNumber: number;
+  pageIndex: number;
+  codes: string[];
+  sheetCount: number;
+  placements: ParsedMaterialsPdfPlacement[];
+};
+
+type ParsedMaterialsPdf = { materials: ParsedMaterial[]; pages: ParsedMaterialsPdfPage[] };
+type ParsedFile = { file: File; pages: ParsedMaterialsPdfPage[] };
 
 const BatchCreateView: React.FC = () => {
   const { addMaterial, refresh } = useWarehouse();
   const { t } = useTranslation();
 
-  /**
-   * ✅ Safe translation helper:
-   * - t(key, varsObject) is the only valid call signature
-   * - If key missing (t returns key or empty), use fallback
-   * - Supports {{var}} interpolation in fallback
-   */
   const tr = (
     key: string,
     fallback: string,
@@ -38,25 +45,25 @@ const BatchCreateView: React.FC = () => {
     return out;
   };
 
-  // Manual entries (and also used for parsed results)
   const [entries, setEntries] = useState<{ code: string; qty: string }[]>([
     { code: "", qty: "" },
   ]);
 
-  // ✅ MULTI PDF import state
   const [files, setFiles] = useState<File[]>([]);
-  const [parsedMaterials, setParsedMaterials] = useState<string[]>([]);
+  const [parsedMaterials, setParsedMaterials] = useState<ParsedMaterial[]>([]);
+  const [parsedFiles, setParsedFiles] = useState<ParsedFile[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
   const [parseErrorsByFile, setParseErrorsByFile] = useState<
     { fileName: string; message: string }[]
   >([]);
 
-  // Save/print state
   const [newMaterials, setNewMaterials] = useState<Material[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isStamping, setIsStamping] = useState(false);
 
-  const handleAddRow = () => setEntries((prev) => [...prev, { code: "", qty: "" }]);
+  const handleAddRow = () =>
+    setEntries((prev) => [...prev, { code: "", qty: "" }]);
 
   const handleChange = (i: number, field: "code" | "qty", value: string) => {
     setEntries((prev) => {
@@ -66,9 +73,9 @@ const BatchCreateView: React.FC = () => {
     });
   };
 
-  // --- PDF IMPORT (MULTI) ---
   const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setParsedMaterials([]);
+    setParsedFiles([]);
     setParseError(null);
     setParseErrorsByFile([]);
 
@@ -76,17 +83,22 @@ const BatchCreateView: React.FC = () => {
     setFiles(list);
   };
 
-  const normalizeUniquePreserveOrder = (arr: string[]) => {
-    const seen = new Set<string>();
-    const out: string[] = [];
-    for (const raw of arr) {
-      const v = String(raw || "").trim();
-      if (!v) continue;
-      if (seen.has(v)) continue;
-      seen.add(v);
-      out.push(v);
+  const mergeByCodePreserveOrder = (items: ParsedMaterial[]) => {
+    const totals = new Map<string, number>();
+    const order: string[] = [];
+
+    for (const it of items) {
+      const code = String(it?.code || "").trim();
+      if (!code) continue;
+
+      if (!totals.has(code)) {
+        totals.set(code, 0);
+        order.push(code);
+      }
+      totals.set(code, (totals.get(code) || 0) + (Number(it.sheetCount) || 0));
     }
-    return out;
+
+    return order.map((code) => ({ code, sheetCount: totals.get(code) || 0 }));
   };
 
   const handleParsePdf = async () => {
@@ -96,29 +108,30 @@ const BatchCreateView: React.FC = () => {
     setParseError(null);
     setParseErrorsByFile([]);
     setParsedMaterials([]);
+    setParsedFiles([]);
 
     try {
-      const results = await Promise.allSettled(
-        files.map((f) => api.parseMaterialsPdf(f) as Promise<ParsedMaterialsPdf>)
-      );
+      const results = await Promise.allSettled(files.map((f) => api.parseMaterialsPdf(f)));
 
-      const allCodes: string[] = [];
+      const allItems: ParsedMaterial[] = [];
       const perFileErrors: { fileName: string; message: string }[] = [];
+      const nextParsedFiles: ParsedFile[] = [];
 
       results.forEach((r, idx) => {
-        const fileName = files[idx]?.name || `PDF ${idx + 1}`;
+        const file = files[idx];
+        const fileName = file?.name || `PDF ${idx + 1}`;
 
         if (r.status === "fulfilled") {
-          const mats = Array.isArray(r.value?.materials) ? r.value.materials : [];
-          allCodes.push(...mats);
+          const mats = Array.isArray((r.value as any)?.materials) ? (r.value as any).materials : [];
+          const pages = Array.isArray((r.value as any)?.pages) ? (r.value as any).pages : [];
+
+          allItems.push(...mats);
+          nextParsedFiles.push({ file, pages });
 
           if (mats.length === 0) {
             perFileErrors.push({
               fileName,
-              message: tr(
-                "batchCreate.pdf.noMaterialsFound",
-                "No materials found in this PDF."
-              ),
+              message: tr("batchCreate.pdf.noMaterialsFound", "No materials found in this PDF."),
             });
           }
         } else {
@@ -131,34 +144,42 @@ const BatchCreateView: React.FC = () => {
         }
       });
 
-      const unique = normalizeUniquePreserveOrder(allCodes);
+      const unique = mergeByCodePreserveOrder(allItems);
 
       if (unique.length === 0) {
         setParseError(
-          tr(
-            "batchCreate.pdf.noMaterialsInAll",
-            "No material codes found in the selected PDFs."
-          )
+          tr("batchCreate.pdf.noMaterialsInAll", "No material codes found in the selected PDFs.")
         );
         setParseErrorsByFile(perFileErrors);
+        setParsedFiles(nextParsedFiles);
         return;
       }
 
       setParsedMaterials(unique);
+      setParsedFiles(nextParsedFiles);
       setParseErrorsByFile(perFileErrors);
 
-      // Merge into entries without losing existing qty
       setEntries((prev) => {
         const cleanedPrev = prev.length === 0 ? [{ code: "", qty: "" }] : prev;
-        const existingCodes = new Set(
-          cleanedPrev.map((e) => e.code.trim()).filter(Boolean)
-        );
 
-        const toAdd = unique
-          .filter((code) => !existingCodes.has(code))
-          .map((code) => ({ code, qty: "" }));
+        const existingCodes = new Set(cleanedPrev.map((e) => e.code.trim()).filter(Boolean));
 
-        return [...cleanedPrev, ...toAdd];
+        const added = unique
+          .filter((m) => !existingCodes.has(m.code))
+          .map((m) => ({ code: m.code, qty: String(m.sheetCount || "") }));
+
+        const updated = cleanedPrev.map((row) => {
+          const code = row.code.trim();
+          if (!code) return row;
+
+          const found = unique.find((m) => m.code === code);
+          if (!found) return row;
+
+          if (!row.qty.trim()) return { ...row, qty: String(found.sheetCount || "") };
+          return row;
+        });
+
+        return [...updated, ...added];
       });
     } catch (e: any) {
       console.error(e);
@@ -171,20 +192,21 @@ const BatchCreateView: React.FC = () => {
   const clearParsed = () => {
     setFiles([]);
     setParsedMaterials([]);
+    setParsedFiles([]);
     setParseError(null);
     setParseErrorsByFile([]);
   };
 
-  // --- SAVE ---
   const validEntries = useMemo(() => {
     return entries.filter((e) => e.code.trim() && e.qty.trim() && Number(e.qty) > 0);
   }, [entries]);
 
-  const handleSaveAll = async () => {
-    setIsSaving(true);
-    setNewMaterials([]);
-    const created: Material[] = [];
+  // ---------------------------
+  // SAVE materials (extracted so we can reuse it)
+  // ---------------------------
 
+  const createMaterialsFromEntries = async (): Promise<Material[]> => {
+    const created: Material[] = [];
     const valid = entries.filter((e) => e.code.trim() && e.qty.trim() && Number(e.qty) > 0);
 
     for (const e of valid) {
@@ -193,7 +215,6 @@ const BatchCreateView: React.FC = () => {
         created.push(material);
       } catch (error) {
         console.error(`Failed to create material ${e.code}:`, error);
-
         alert(
           tr(
             "batchCreate.saveRowFailed",
@@ -205,13 +226,22 @@ const BatchCreateView: React.FC = () => {
     }
 
     await refresh();
-    setNewMaterials(created);
-    setEntries([{ code: "", qty: "" }]);
-    clearParsed();
-    setIsSaving(false);
+    return created;
   };
 
-  // --- PRINT ---
+  const handleSaveAll = async () => {
+    setIsSaving(true);
+    setNewMaterials([]);
+    try {
+      const created = await createMaterialsFromEntries();
+      setNewMaterials(created);
+      setEntries([{ code: "", qty: "" }]);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // --- PRINT (unchanged) ---
   const handlePrintAll = (materials: Material[], mode: "sticker" | "full") => {
     const totalCells = 24;
     const filled = [...materials];
@@ -310,13 +340,223 @@ const BatchCreateView: React.FC = () => {
     }, 350);
   };
 
+  // ---------------------------
+  // Stamp QR anchored to Blatt positions
+  // ---------------------------
+
+  const makeQrSvg = (value: string) => {
+    let svg = renderToStaticMarkup(
+      <QRCodeSVG value={value} size={128} level="M" marginSize={0} />
+    );
+    if (!svg.includes('xmlns="http://www.w3.org/2000/svg"')) {
+      svg = svg.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    return svg;
+  };
+
+  const svgToPngBytes = async (svg: string, sizePx: number) => {
+    const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    const svgUrl = URL.createObjectURL(svgBlob);
+
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("Failed to decode SVG into Image (check xmlns)."));
+        image.src = svgUrl;
+      });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = sizePx;
+      canvas.height = sizePx;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas 2D context not available");
+
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, sizePx, sizePx);
+      ctx.drawImage(img, 0, 0, sizePx, sizePx);
+
+      const dataUrl = canvas.toDataURL("image/png");
+      const base64 = dataUrl.split(",")[1] || "";
+      const bin = atob(base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return bytes;
+    } finally {
+      URL.revokeObjectURL(svgUrl);
+    }
+  };
+
+  const stampOnePdfAndDownload = async (
+    file: File,
+    pages: ParsedMaterialsPdfPage[],
+    codeToMaterial: Map<string, Material>
+  ) => {
+    const srcBytes = await file.arrayBuffer();
+    const pdf = await PDFDocument.load(srcBytes);
+
+    const pngCache = new Map<string, any>();
+    const PNG_SIZE = 512;
+
+    const SIZE = 70;
+    const MARGIN_X = 18;
+
+    const QR_BELOW_BLATT = 10;
+    const SAME_BLATT_GAP_Y = 8;
+
+    for (const p of pages || []) {
+      const page = pdf.getPage(p.pageIndex);
+      if (!page) continue;
+
+      const { width } = page.getSize();
+
+      const placements = Array.isArray(p.placements) ? p.placements : [];
+      const sorted = [...placements].sort((a, b) => b.blattY - a.blattY);
+
+      const usedAtBlattY = new Map<number, number>();
+
+      for (const pl of sorted) {
+        const code = String(pl.code || "").trim();
+        if (!code) continue;
+
+        const material = codeToMaterial.get(code);
+        if (!material) continue;
+
+        const qrValue = JSON.stringify({
+          id: material.id,
+          materialCode: material.materialCode,
+          quantity: material.initialQuantity,
+        });
+
+        let embeddedPng = pngCache.get(material.id);
+        if (!embeddedPng) {
+          const svg = makeQrSvg(qrValue);
+          const pngBytes = await svgToPngBytes(svg, PNG_SIZE);
+          embeddedPng = await pdf.embedPng(pngBytes);
+          pngCache.set(material.id, embeddedPng);
+        }
+
+        const x = width - SIZE - MARGIN_X;
+
+        const key = Math.round(Number(pl.blattY) || 0);
+        const stackIndex = usedAtBlattY.get(key) || 0;
+        usedAtBlattY.set(key, stackIndex + 1);
+
+        const y =
+          (Number(pl.blattY) || 0) -
+          QR_BELOW_BLATT -
+          SIZE -
+          stackIndex * (SIZE + SAME_BLATT_GAP_Y);
+
+        page.drawRectangle({
+          x: x - 2,
+          y: y - 2,
+          width: SIZE + 4,
+          height: SIZE + 4,
+          color: rgb(1, 1, 1),
+          opacity: 0.95,
+          borderWidth: 0,
+        });
+
+        page.drawImage(embeddedPng, { x, y, width: SIZE, height: SIZE });
+      }
+    }
+
+    const outBytes = await pdf.save();
+    const blob = new Blob([Uint8Array.from(outBytes)], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${file.name.replace(/\.pdf$/i, "")}_with_qr.pdf`;
+      a.click();
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  // ---------------------------
+  // Combined action: create materials (if needed) + stamp PDFs
+  // ---------------------------
+
+  const handleStampUploadedPdfs = async () => {
+    if (parsedFiles.length === 0) {
+      alert(tr("batchCreate.stamp.noParsedPdfs", "No parsed PDFs available to stamp."));
+      return;
+    }
+    if (validEntries.length === 0 && newMaterials.length === 0) {
+      alert(
+        tr(
+          "batchCreate.stamp.needRowsOrSaved",
+          "Add at least one valid row (code + qty > 0) or create materials first."
+        )
+      );
+      return;
+    }
+
+    setIsStamping(true);
+    try {
+      // 1) Ensure we have materials with IDs
+      let materialsToUse: Material[] = newMaterials;
+
+      if (!materialsToUse || materialsToUse.length === 0) {
+        setIsSaving(true);
+        try {
+          const created = await createMaterialsFromEntries();
+          materialsToUse = created;
+          setNewMaterials(created);
+
+          // keep PDFs; reset rows like Save All
+          setEntries([{ code: "", qty: "" }]);
+        } finally {
+          setIsSaving(false);
+        }
+      }
+
+      if (!materialsToUse || materialsToUse.length === 0) {
+        alert(
+          tr(
+            "batchCreate.stamp.noMaterialsCreated",
+            "No materials were created, so there is nothing to stamp."
+          )
+        );
+        return;
+      }
+
+      // 2) Build map code->material
+      const codeToMaterial = new Map<string, Material>();
+      for (const m of materialsToUse) {
+        const code = String((m as any).materialCode || "").trim();
+        if (code) codeToMaterial.set(code, m);
+      }
+
+      // 3) Stamp each parsed file (downloads each stamped PDF)
+      for (const pf of parsedFiles) {
+        await stampOnePdfAndDownload(pf.file, pf.pages, codeToMaterial);
+      }
+    } catch (e: any) {
+      console.error(e);
+      alert(String(e?.message || e));
+    } finally {
+      setIsStamping(false);
+    }
+  };
+
+  const stampBtnDisabled =
+    isParsing ||
+    isSaving ||
+    isStamping ||
+    parsedFiles.length === 0 ||
+    (newMaterials.length === 0 && validEntries.length === 0);
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg max-w-3xl mx-auto">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">
         {t("batchCreate.title", {})}
       </h2>
 
-      {/* ✅ PDF IMPORT (multi) */}
       <div className="mb-6 p-4 border rounded-md bg-gray-50">
         <h3 className="text-lg font-semibold text-gray-700 mb-2">
           {tr("batchCreate.pdf.title", "Import from PDF")}
@@ -350,7 +590,6 @@ const BatchCreateView: React.FC = () => {
           </button>
         </div>
 
-        {/* Selected files */}
         {files.length > 0 && (
           <div className="mt-3 text-sm text-gray-700">
             {tr("batchCreate.pdf.selected", "Selected PDFs")}:{" "}
@@ -367,7 +606,6 @@ const BatchCreateView: React.FC = () => {
           <div className="text-red-600 text-sm mt-3 whitespace-pre-line">{parseError}</div>
         )}
 
-        {/* Per-file parse errors */}
         {parseErrorsByFile.length > 0 && (
           <div className="mt-3 text-sm text-red-600">
             <div className="font-semibold">
@@ -391,24 +629,24 @@ const BatchCreateView: React.FC = () => {
             <div className="mt-2 flex flex-wrap gap-2">
               {parsedMaterials.map((m) => (
                 <span
-                  key={m}
+                  key={m.code}
                   className="inline-flex items-center px-2 py-1 rounded bg-white border text-gray-800"
+                  title={`Sheets: ${m.sheetCount}`}
                 >
-                  {m}
+                  {m.code} <span className="ml-2 text-gray-500">({m.sheetCount})</span>
                 </span>
               ))}
             </div>
             <p className="mt-3 text-gray-600">
               {tr(
                 "batchCreate.pdf.fillQtyHint",
-                'Quantities were left empty — fill them below and click "Save All".'
+                'Quantities were pre-filled from the PDFs — adjust if needed and click "Save All".'
               )}
             </p>
           </div>
         )}
       </div>
 
-      {/* MANUAL / EDITABLE ROWS */}
       {entries.map((e, i) => (
         <div key={i} className="grid grid-cols-2 gap-3 mb-3">
           <input
@@ -447,6 +685,23 @@ const BatchCreateView: React.FC = () => {
           }
         >
           {isSaving ? (t("batchCreate.saving", {}) as any) : (t("batchCreate.saveAll", {}) as any)}
+        </button>
+
+        <button
+          onClick={handleStampUploadedPdfs}
+          disabled={stampBtnDisabled}
+          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium disabled:bg-green-300"
+          title={
+            parsedFiles.length === 0
+              ? tr("batchCreate.stamp.noParsedPdfsTitle", "Parse PDFs first.")
+              : newMaterials.length === 0 && validEntries.length === 0
+                ? tr("batchCreate.stamp.needValidRowTitle", "Add at least one valid row (code + qty > 0).")
+                : ""
+          }
+        >
+          {isStamping
+            ? tr("batchCreate.stamp.working", "Working...")
+            : tr("batchCreate.stamp.btn", "Save + Stamp PDFs with QR")}
         </button>
       </div>
 

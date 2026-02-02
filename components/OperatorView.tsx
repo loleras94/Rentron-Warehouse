@@ -19,6 +19,10 @@ const OperatorView: React.FC = () => {
   // Quantity adjust UI (warehouse manager only)
   const [isAdjustingQty, setIsAdjustingQty] = useState(false);
   const [newQty, setNewQty] = useState<string>("");
+
+  // New state for other entities with same SKU and location details
+  const [otherEntities, setOtherEntities] = useState<Material[]>([]);
+
   const [isSavingQty, setIsSavingQty] = useState(false);
 
   const { findMaterialById, findMaterialByIdOnline } = useWarehouse();
@@ -49,6 +53,16 @@ const OperatorView: React.FC = () => {
         if (foundMaterial.currentQuantity > 0) {
           setMaterial(foundMaterial);
           setError(null);
+
+          // Fetch other materials with the same SKU if manager or warehouse manager
+          if (isWarehouseManager) {
+            // Query materials with the same SKU, excluding the currently scanned material
+            const materialsWithSameSku = await api.searchMaterials(foundMaterial.materialCode, false);
+            const filteredMaterials = materialsWithSameSku.filter(
+              (mat) => mat.id !== foundMaterial.id // Exclude the current material
+            );
+            setOtherEntities(filteredMaterials);
+          }
         } else {
           setError(
             t("operator.materialConsumedError", {
@@ -67,8 +81,7 @@ const OperatorView: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [scannedData, refreshKey, findMaterialByIdOnline, findMaterialById, t]);
-
+  }, [scannedData, refreshKey, findMaterialByIdOnline, findMaterialById, t, isWarehouseManager]);
 
   const handleScanSuccess = (decodedText: string) => {
     try {
@@ -99,6 +112,8 @@ const OperatorView: React.FC = () => {
     setIsAdjustingQty(false);
     setNewQty("");
     setIsSavingQty(false);
+
+    setOtherEntities([]); // Reset other entities
   };
 
   const handleActionComplete = () => {
@@ -147,7 +162,6 @@ const OperatorView: React.FC = () => {
       setIsSavingQty(false);
     }
   };
-
 
   if (isScanning) {
     return (
@@ -207,6 +221,21 @@ const OperatorView: React.FC = () => {
             </p>
           </div>
 
+          {/* New section for warehouse managers */}
+          {isWarehouseManager && otherEntities.length > 0 && (
+            <div className="mt-4 space-y-2 text-gray-700 bg-gray-50 p-4 rounded-md">
+              <h4 className="text-lg font-semibold text-gray-700">{t("operator.sameSkuEntities")}</h4>
+              <ul className="list-disc pl-5">
+                {otherEntities.map((entity) => (
+                  <li key={entity.id}>
+                    {entity.materialCode}: {entity.currentQuantity}{" "}
+                    ({entity.location?.area} - {entity.location?.position})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="mt-6">
             <h4 className="font-semibold mb-3">{t("operator.chooseAction")}:</h4>
 
@@ -243,7 +272,6 @@ const OperatorView: React.FC = () => {
                 {t("operator.partialConsumption")}
               </button>
 
-              {/* Warehouse Manager extra action */}
               {isWarehouseManager && (
                 <button
                   onClick={openAdjustQty}
@@ -277,7 +305,6 @@ const OperatorView: React.FC = () => {
         />
       )}
 
-      {/* Adjust Quantity Modal */}
       {isAdjustingQty && material && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-5">

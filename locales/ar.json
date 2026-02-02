@@ -177,6 +177,15 @@
     }
   },
   "batchCreate": {
+    "stamp": {
+      "btn": "حفظ + ختم PDFs مع QR",
+      "working": "جاري العمل...",
+      "noParsedPdfs": "لا توجد ملفات PDF تم تحليلها للختم.",
+      "needRowsOrSaved": "أضف صفًا صالحًا واحدًا على الأقل (الرمز + الكمية > 0) أو قم بإنشاء المواد أولاً.",
+      "noMaterialsCreated": "لم يتم إنشاء أي مواد، لذلك لا يوجد شيء لختمه.",
+      "noParsedPdfsTitle": "قم بتحليل ملفات PDF أولاً.",
+      "needValidRowTitle": "أضف صفًا صالحًا واحدًا على الأقل (الرمز + الكمية > 0)."
+    },    
     "title": "إنشاء مواد دفعة واحدة",
     "materialCodePlaceholder": "رمز المادة",
     "quantityPlaceholder": "الكمية",

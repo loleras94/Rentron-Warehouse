@@ -178,6 +178,15 @@
     }
   },
   "batchCreate": {
+    "stamp": {
+      "btn": "Save + Stamp PDFs with QR",
+      "working": "Working...",
+      "noParsedPdfs": "No parsed PDFs available to stamp.",
+      "needRowsOrSaved": "Add at least one valid row (code + qty > 0) or create materials first.",
+      "noMaterialsCreated": "No materials were created, so there is nothing to stamp.",
+      "noParsedPdfsTitle": "Parse PDFs first.",
+      "needValidRowTitle": "Add at least one valid row (code + qty > 0)."
+    },
     "title": "Batch Create Materials",
     "materialCodePlaceholder": "Material Code",
     "quantityPlaceholder": "Quantity",
