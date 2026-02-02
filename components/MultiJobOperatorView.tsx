@@ -449,7 +449,7 @@ const MultiJobOperatorView: React.FC = () => {
           if (!doStop) return;
 
           await api.stopLivePhase(user.username).catch(() => {});
-          await clearStoredJobsServer().catch(() => {});
+          //await clearStoredJobsServer().catch(() => {});
           setError(t("multiJob.errors.stoppedNoRestore"));
           setView("idle");
           return;
@@ -906,7 +906,7 @@ const MultiJobOperatorView: React.FC = () => {
     } finally {
       if (user?.username) {
         await api.stopLivePhase(user.username).catch(() => {});
-        await clearStoredJobsServer().catch(() => {});
+        //await clearStoredJobsServer().catch(() => {});
       }
     }
   };
@@ -923,7 +923,7 @@ const MultiJobOperatorView: React.FC = () => {
 
     if (user?.username) {
       await api.stopLivePhase(user.username).catch(() => {});
-      await clearStoredJobsServer().catch(() => {});
+      //await clearStoredJobsServer().catch(() => {});
     }
   };
 
