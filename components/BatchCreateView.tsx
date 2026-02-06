@@ -8,17 +8,27 @@ import * as api from "../api/client";
 import { PDFDocument, rgb } from "pdf-lib";
 
 type ParsedMaterial = { code: string; sheetCount: number };
-type ParsedMaterialsPdfPlacement = { code: string; blattY: number };
+
+/**
+ * ✅ FIX:
+ * We now support quantities PER blatt (per placement), not “one per page”.
+ * Your backend/parser should put the quantity for each blatt here.
+ *
+ * If the backend still returns only a page-level sheetCount, we’ll fall back to it,
+ * but we will ALWAYS prefer pl.sheetCount when present.
+ */
+type ParsedMaterialsPdfPlacement = { code: string; blattY: number; sheetCount?: number };
 
 type ParsedMaterialsPdfPage = {
   pageNumber: number;
   pageIndex: number;
   codes: string[];
-  sheetCount: number;
+  /** legacy / fallback (old behavior). We keep it for backwards compatibility. */
+  sheetCount?: number;
   placements: ParsedMaterialsPdfPlacement[];
 };
 
-type ParsedMaterialsPdf = { materials: ParsedMaterial[]; pages: ParsedMaterialsPdfPage[] };
+type ParsedMaterialsPdf = { materials?: ParsedMaterial[]; pages?: ParsedMaterialsPdfPage[] };
 type ParsedFile = { file: File; pages: ParsedMaterialsPdfPage[] };
 
 const BatchCreateView: React.FC = () => {
@@ -101,6 +111,33 @@ const BatchCreateView: React.FC = () => {
     return order.map((code) => ({ code, sheetCount: totals.get(code) || 0 }));
   };
 
+  /**
+   * ✅ FIX: derive materials from placements, using per-blatt quantities.
+   * We prefer pl.sheetCount (per placement). If missing, fall back to page.sheetCount.
+   * This prevents “first blatt qty applied to all materials on that page”.
+   */
+  const materialsFromPages = (pages: ParsedMaterialsPdfPage[]): ParsedMaterial[] => {
+    const items: ParsedMaterial[] = [];
+
+    for (const p of pages || []) {
+      const placements = Array.isArray(p.placements) ? p.placements : [];
+
+      for (const pl of placements) {
+        const code = String(pl.code || "").trim();
+        if (!code) continue;
+
+        const qty =
+          (typeof pl.sheetCount === "number" ? pl.sheetCount : undefined) ??
+          (typeof p.sheetCount === "number" ? p.sheetCount : undefined) ??
+          0;
+
+        items.push({ code, sheetCount: Number(qty) || 0 });
+      }
+    }
+
+    return items;
+  };
+
   const handleParsePdf = async () => {
     if (files.length === 0) return;
 
@@ -111,7 +148,9 @@ const BatchCreateView: React.FC = () => {
     setParsedFiles([]);
 
     try {
-      const results = await Promise.allSettled(files.map((f) => api.parseMaterialsPdf(f)));
+      const results = await Promise.allSettled(
+        files.map((f) => api.parseMaterialsPdf(f))
+      );
 
       const allItems: ParsedMaterial[] = [];
       const perFileErrors: { fileName: string; message: string }[] = [];
@@ -122,17 +161,42 @@ const BatchCreateView: React.FC = () => {
         const fileName = file?.name || `PDF ${idx + 1}`;
 
         if (r.status === "fulfilled") {
-          const mats = Array.isArray((r.value as any)?.materials) ? (r.value as any).materials : [];
-          const pages = Array.isArray((r.value as any)?.pages) ? (r.value as any).pages : [];
+          const value = r.value as ParsedMaterialsPdf;
 
-          allItems.push(...mats);
+          const pages = Array.isArray((value as any)?.pages)
+            ? ((value as any).pages as ParsedMaterialsPdfPage[])
+            : [];
+
+          // ✅ IMPORTANT:
+          // We intentionally build material quantities from placements
+          // so each blatt can have its own sheetCount.
+          const matsFromPlacements = materialsFromPages(pages);
+
+          allItems.push(...matsFromPlacements);
           nextParsedFiles.push({ file, pages });
 
-          if (mats.length === 0) {
+          if (matsFromPlacements.length === 0) {
             perFileErrors.push({
               fileName,
-              message: tr("batchCreate.pdf.noMaterialsFound", "No materials found in this PDF."),
+              message: tr(
+                "batchCreate.pdf.noMaterialsFound",
+                "No materials found in this PDF."
+              ),
             });
+          } else {
+            // Optional: warn if parser isn’t returning per-placement quantities
+            const hasAnyPerBlattQty = pages.some((p) =>
+              (p.placements || []).some((pl) => typeof pl.sheetCount === "number")
+            );
+            if (!hasAnyPerBlattQty) {
+              perFileErrors.push({
+                fileName,
+                message: tr(
+                  "batchCreate.pdf.noPerBlattQty",
+                  "Parsed codes, but no per-blatt quantities were found (using page fallback if available). Update the PDF parser to return sheetCount per blatt."
+                ),
+              });
+            }
           }
         } else {
           perFileErrors.push({
@@ -148,7 +212,10 @@ const BatchCreateView: React.FC = () => {
 
       if (unique.length === 0) {
         setParseError(
-          tr("batchCreate.pdf.noMaterialsInAll", "No material codes found in the selected PDFs.")
+          tr(
+            "batchCreate.pdf.noMaterialsInAll",
+            "No material codes found in the selected PDFs."
+          )
         );
         setParseErrorsByFile(perFileErrors);
         setParsedFiles(nextParsedFiles);
@@ -162,7 +229,9 @@ const BatchCreateView: React.FC = () => {
       setEntries((prev) => {
         const cleanedPrev = prev.length === 0 ? [{ code: "", qty: "" }] : prev;
 
-        const existingCodes = new Set(cleanedPrev.map((e) => e.code.trim()).filter(Boolean));
+        const existingCodes = new Set(
+          cleanedPrev.map((e) => e.code.trim()).filter(Boolean)
+        );
 
         const added = unique
           .filter((m) => !existingCodes.has(m.code))
@@ -183,7 +252,9 @@ const BatchCreateView: React.FC = () => {
       });
     } catch (e: any) {
       console.error(e);
-      setParseError(e?.message || tr("batchCreate.pdf.parseFailed", "Failed to parse PDF."));
+      setParseError(
+        e?.message || tr("batchCreate.pdf.parseFailed", "Failed to parse PDF.")
+      );
     } finally {
       setIsParsing(false);
     }
@@ -490,7 +561,7 @@ const BatchCreateView: React.FC = () => {
       alert(
         tr(
           "batchCreate.stamp.needRowsOrSaved",
-          "Add at least one valid row (code + qty > 0) or create materials first."
+          'Add at least one valid row (code + qty > 0) or create materials first.'
         )
       );
       return;
@@ -695,7 +766,10 @@ const BatchCreateView: React.FC = () => {
             parsedFiles.length === 0
               ? tr("batchCreate.stamp.noParsedPdfsTitle", "Parse PDFs first.")
               : newMaterials.length === 0 && validEntries.length === 0
-                ? tr("batchCreate.stamp.needValidRowTitle", "Add at least one valid row (code + qty > 0).")
+                ? tr(
+                    "batchCreate.stamp.needValidRowTitle",
+                    "Add at least one valid row (code + qty > 0)."
+                  )
                 : ""
           }
         >

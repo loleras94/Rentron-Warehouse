@@ -419,6 +419,116 @@ const PdfOrderImportView: React.FC = () => {
     }
   };
 
+
+
+
+
+
+
+
+
+
+
+  const handleCreatePdfWithQrWithoutRemovingExtraPages = async () => {
+    if (!parsed || !file) return;
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const sheets = await getOrCreateSheetsForOrder();
+      if (!sheets || sheets.length === 0) {
+        setError(t("pdfImport.errors.noSheetsForOrder"));
+        return;
+      }
+
+      // Build the PDF but skip the filtering for extra pages
+      const qrBySheet = new Map<string, string>();
+      for (const s of sheets || []) {
+        const key = normSheetNo(s.productionSheetNumber);
+        if (key && (s as any).qrValue) qrBySheet.set(key, (s as any).qrValue);
+      }
+
+      const srcBytes = await file.arrayBuffer();
+      const srcPdf = await PDFDocument.load(srcBytes);
+      const outPdf = await PDFDocument.create();
+
+      const copied = await outPdf.copyPages(srcPdf, [...Array(srcPdf.getPageCount()).keys()]);
+      copied.forEach((pg) => outPdf.addPage(pg));
+
+      const pngCache = new Map<string, any>();
+      const PNG_SIZE = 512;
+
+      for (let outIdx = 0; outIdx < copied.length; outIdx++) {
+        const page = outPdf.getPage(outIdx);
+        const meta: any = (parsed.pdfPages as any[])[outIdx];
+        if (!meta || meta.type !== "ORDER_CARD") continue;
+
+        const sheetNo = normSheetNo(meta.productionSheetNumber);
+        if (!sheetNo) continue;
+
+        const qrValue = qrBySheet.get(sheetNo);
+        if (!qrValue) continue;
+
+        let embeddedPng = pngCache.get(sheetNo);
+        if (!embeddedPng) {
+          const svg = makeQrSvg(qrValue);
+          const pngBytes = await svgToPngBytes(svg, PNG_SIZE);
+          embeddedPng = await outPdf.embedPng(pngBytes);
+          pngCache.set(sheetNo, embeddedPng);
+        }
+
+        const { width, height } = page.getSize();
+        const size = 70;
+        const margin = 18;
+        const x = width - size - margin;
+        const y = height - size - margin;
+
+        page.drawRectangle({
+          x: x - 2,
+          y: y - 2,
+          width: size + 4,
+          height: size + 4,
+          color: rgb(1, 1, 1),
+          opacity: 0.95,
+          borderWidth: 0,
+        });
+
+        page.drawImage(embeddedPng, { x, y, width: size, height: size });
+      }
+
+      const outBytes = await outPdf.save();
+      const ab = Uint8Array.from(outBytes).buffer;
+      const blob = new Blob([ab], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+
+      try {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${parsed?.orderNumber || "order"}_with_qr_no_extra_pages.pdf`;
+        a.click();
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    } catch (e: any) {
+      console.error(e);
+      setError(String(e?.message || e));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+
+
+
+
+
+
+
+
+
+
+
   const handleCreatePdfWithQr = async () => {
     if (!parsed || !file) return;
 
@@ -510,6 +620,21 @@ const PdfOrderImportView: React.FC = () => {
                 {isSaving ? t("pdfImport.buttons.working") : t("pdfImport.buttons.createPdfWithQr")}
               </button>
             </div>
+
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleCreatePdfWithQrWithoutRemovingExtraPages}
+                disabled={isSaving || isParsing || isExportingXlsx || !parsed?.pdfPages?.length || !file}
+                className="btn-primary"
+              >
+                {isSaving ? t("pdfImport.buttons.working") : t("pdfImport.buttons.createPdfWithQrWithoutRemovingExtraPages")}
+              </button>
+            </div>
+
+
+
+
 
             {/* Minimal parsed block */}
             <div className="border rounded-md p-4 bg-gray-50 text-sm">

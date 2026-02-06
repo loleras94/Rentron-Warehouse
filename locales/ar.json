@@ -88,7 +88,8 @@
     "newTotalQuantity": "الكمية الإجمالية الجديدة",
     "invalidQuantity": "يجب أن تكون الكمية رقمًا ≥ 0",
     "quantityUpdated": "تم تحديث الكمية ✅",
-    "quantityUpdateFailed": "فشل تحديث الكمية"
+    "quantityUpdateFailed": "فشل تحديث الكمية",
+    "sameSkuEntities": "المنتجات بنفس الرمز:"
   },
   "search": {
     "title": "بحث عن المواد",
@@ -309,6 +310,8 @@
     }
   },
   "machineOperator": {
+    "consumeMoreTitle": "استهلاك المزيد؟",
+    "consumeMoreMessage": "هل ترغب في استهلاك مادة أخرى؟",
     "title": "تتبع مراحل الإنتاج",
     "scanPrompt": "امسح رمز QR لورقة الإنتاج للبدء.",
     "startScan": "بدء المسح",

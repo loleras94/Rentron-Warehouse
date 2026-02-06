@@ -89,7 +89,8 @@
     "newTotalQuantity": "New total quantity",
     "invalidQuantity": "Quantity must be a number ≥ 0",
     "quantityUpdated": "Quantity updated ✅",
-    "quantityUpdateFailed": "Failed to update quantity"
+    "quantityUpdateFailed": "Failed to update quantity",
+    "sameSkuEntities": "Items with the same code:"
   },
   "search": {
     "title": "Search Materials",
@@ -310,6 +311,8 @@
     }
   },
   "machineOperator": {
+    "consumeMoreTitle": "Consume More?",
+    "consumeMoreMessage": "Do you want to consume another material?",
     "title": "Production Phase Tracking",
     "scanPrompt": "Scan a Production Sheet QR code to begin.",
     "startScan": "Start Scanning",

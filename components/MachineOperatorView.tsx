@@ -828,6 +828,61 @@ const MachineOperatorView: React.FC = () => {
     setViewState("idle");
   };
 
+/* ---------------------------------------------------------
+     RECURRING CONSUMPTION HANDLER
+  --------------------------------------------------------- */
+  const handleConsumeSuccess = async () => {
+    // 1. Close the modal briefly so the confirmation dialog can appear cleanly
+    setConsumeFlow((prev) => ({ ...prev, open: false }));
+
+    // 2. Ask the user if they want to consume more
+    const wantMore = await openModal(
+      t("machineOperator.consumeMoreTitle") || "Consume More?",
+      t("machineOperator.consumeMoreMessage") || "Do you want to consume another material?",
+      [
+        { label: t("common.yes"), type: "primary", onClick: () => closeModal(true) },
+        { label: t("common.no"), type: "secondary", onClick: () => closeModal(false) },
+      ]
+    );
+
+    if (wantMore) {
+      setIsLoading(true);
+      try {
+        // 3. Refresh materials to get updated quantities (ensure we don't pick empty stock)
+        const freshMaterials = await api.getMaterials();
+        // Use the safe resolver from your helpers
+        const candidates = resolveMaterialsForPhase(sheet, freshMaterials);
+        
+        // Update the UI list
+        setMaterialInfo(candidates.length ? candidates : null);
+
+        if (candidates.length === 0) {
+           await openModal(
+             t("machineOperator.noMaterialsTitle"), 
+             t("machineOperator.noMaterialsMessage"), 
+             [{ label: t("common.ok"), type: "primary", onClick: () => closeModal(false) }]
+           );
+           return;
+        }
+
+        // 4. Re-open the flow, clearing the selection for the next item
+        setConsumeFlow((prev) => ({
+          ...prev,
+          open: true,
+          candidates: candidates,
+          selectedMaterial: null, 
+        }));
+      } catch (e) {
+        console.error("Error refreshing materials:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // User is done, keep flow closed
+      setConsumeFlow((prev) => ({ ...prev, open: false }));
+    }
+  };
+
   /* ---------------------------------------------------------
      SCANNING
   --------------------------------------------------------- */
@@ -1168,7 +1223,7 @@ const MachineOperatorView: React.FC = () => {
             </div>
           )}
 
-          {/* CONSUME FLOW: ACTION MODAL */}
+          {/* CONSUME FLOW: ACTION MODAL COMPONENT */}
           {consumeAction && consumeFlow.selectedMaterial && (
             <ActionModal
               actionType={consumeAction}
@@ -1177,16 +1232,14 @@ const MachineOperatorView: React.FC = () => {
               onClose={() => setConsumeAction(null)}
               onComplete={async () => {
                 setConsumeAction(null);
-                setConsumeFlow({
-                  open: false,
-                  phaseId: null,
-                  quantityDone: 0,
-                  candidates: [],
-                  selectedMaterial: null,
-                });
+                
 
+                // Refresh materials after consumption
                 const freshMaterials = await api.getMaterials();
                 setMaterialInfo(resolveMaterialsForPhase(sheet, freshMaterials));
+                await handleConsumeSuccess();
+                // Optionally refresh the sheet status
+                // reloadSheet(); 
               }}
             />
           )}

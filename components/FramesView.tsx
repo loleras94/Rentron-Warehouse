@@ -51,6 +51,12 @@ const FramesView: React.FC = () => {
   // Saving state per frame
   const [savingByFrameId, setSavingByFrameId] = useState<Record<number, boolean>>({});
 
+  // Keep latest products in a ref so async handlers don't use stale state
+  const productsRef = useRef<Product[]>([]);
+  useEffect(() => {
+    productsRef.current = products;
+  }, [products]);
+
   useEffect(() => {
     (async () => {
       try {
@@ -92,6 +98,43 @@ const FramesView: React.FC = () => {
       setFrames((prev) => prev.map((f) => (f.frameId === frame.frameId ? updated : f)));
     } finally {
       setSaving(frame.frameId, false);
+    }
+  };
+
+  /**
+   * Ensure all product codes exist in Products table.
+   * If a code is missing, create it via saveProduct().
+   * Then refresh products list (so names/etc are consistent).
+   */
+  const ensureProductsExist = async (ids: string[]) => {
+    const trimmed = ids.map((x) => x.trim()).filter(Boolean);
+    if (trimmed.length === 0) return;
+
+    const current = productsRef.current || [];
+    const existing = new Set(current.map((p) => p.id));
+
+    const missing = Array.from(new Set(trimmed.filter((id) => !existing.has(id))));
+    if (missing.length === 0) return;
+
+    // Try create missing products
+    await Promise.all(
+      missing.map(async (id) => {
+        try {
+          // Minimal payload; your saveProduct() will ensure name exists
+          await api.saveProduct({ id, name: id } as Product);
+        } catch {
+          // If it already exists (race/duplicate) or backend rejects, ignore and continue.
+          // We'll refresh products afterward anyway.
+        }
+      })
+    );
+
+    // Refresh products once (avoid chasing partial local state)
+    try {
+      const ps = await api.getProducts();
+      setProducts(ps);
+    } catch {
+      // If refresh fails, at least we attempted creation.
     }
   };
 
@@ -365,28 +408,27 @@ const FramesView: React.FC = () => {
     if (!prod && !hasW && !hasH && !hasQ) return frames;
 
     return frames.filter((f) => {
-    // product filter
-    if (prod) {
+      // product filter
+      if (prod) {
         const ids = f.productIds || [];
         if (!ids.includes(prod)) return false;
-    }
+      }
 
-    // quality filter (null = not matching)
-    if (hasQ) {
+      // quality filter (null = not matching)
+      if (hasQ) {
         if (f.quality === null || Number(f.quality) !== (q as number)) return false;
-    }
+      }
 
-    // dimension filters (null = not matching)
-    if (hasW) {
+      // dimension filters (null = not matching)
+      if (hasW) {
         if (f.widthCm === null || f.widthCm < (w as number)) return false;
-    }
-    if (hasH) {
+      }
+      if (hasH) {
         if (f.heightCm === null || f.heightCm < (h as number)) return false;
-    }
+      }
 
-    return true;
+      return true;
     });
-
   }, [frames, filterProductId, minWidth, minHeight, filterQuality]);
 
   const clearFilters = () => {
@@ -441,8 +483,6 @@ const FramesView: React.FC = () => {
         </div>
       </div>
 
-
-
       {/* ===== Filters ===== */}
       <div className="p-4 border rounded-md bg-gray-50 mb-6">
         <div className="flex flex-col gap-3">
@@ -469,19 +509,19 @@ const FramesView: React.FC = () => {
             </div>
 
             <div>
-            <label className="text-xs text-gray-600">{t("frames.filters.quality") || "Quality"}</label>
-            <select
+              <label className="text-xs text-gray-600">{t("frames.filters.quality") || "Quality"}</label>
+              <select
                 value={filterQuality}
                 onChange={(e) => setFilterQuality(e.target.value)}
                 className="w-full border border-gray-300 rounded-md p-2"
-            >
+              >
                 <option value="">{t("common.dash") || "—"}</option>
                 {qualities.map((q) => (
-                <option key={q} value={q}>
+                  <option key={q} value={q}>
                     {q}
-                </option>
+                  </option>
                 ))}
-            </select>
+              </select>
             </div>
 
             <div>
@@ -559,8 +599,7 @@ const FramesView: React.FC = () => {
                     <div className="text-sm text-gray-600">
                       {(t("frames.fields.position") || "Position")}: {f.position ?? "—"} ·{" "}
                       {(t("frames.fields.quality") || "Quality")}: {f.quality ?? "—"} ·{" "}
-                      {(t("frames.fields.size") || "Size")}:{" "}
-                      {f.widthCm && f.heightCm ? `${f.widthCm}×${f.heightCm} cm` : "—"}
+                      {(t("frames.fields.size") || "Size")}: {f.widthCm && f.heightCm ? `${f.widthCm}×${f.heightCm} cm` : "—"}
                     </div>
                     {hasUnknown && (
                       <div className="text-xs text-amber-700 mt-1">
@@ -628,7 +667,6 @@ const FramesView: React.FC = () => {
                     onBlur={() => {
                       const curr = framesById.get(f.frameId);
                       if (!curr) return;
-                      // save whatever is currently in state
                       update(curr, { widthCm: curr.widthCm });
                     }}
                     className="w-full border border-gray-300 rounded-md p-2"
@@ -658,17 +696,24 @@ const FramesView: React.FC = () => {
 
                 {/* Products (manual) */}
                 <div>
-                  <label className="text-xs text-gray-600">
-                    {t("frames.products.inputLabel") || "Products included (type codes)"}
-                  </label>
+                  <label className="text-xs text-gray-600">{t("frames.products.inputLabel") || "Products included (type codes)"}</label>
                   <input
                     type="text"
                     defaultValue={productText}
                     placeholder={t("frames.products.placeholder") || "e.g. PRD001, PRD002 PRD003"}
                     onBlur={(e) => {
-                      const list = normalizeProductCodes(e.target.value);
-                      update(f, { productIds: list });
-                      e.currentTarget.value = list.join(", ");
+                      void (async () => {
+                        const list = normalizeProductCodes(e.currentTarget.value);
+
+                        // 1) Ensure products exist in DB (create missing)
+                        await ensureProductsExist(list);
+
+                        // 2) Save frame with productIds
+                        await update(f, { productIds: list });
+
+                        // 3) Normalize input display
+                        e.currentTarget.value = list.join(", ");
+                      })();
                     }}
                     className="w-full border border-gray-300 rounded-md p-2"
                     disabled={isSaving}
@@ -688,12 +733,9 @@ const FramesView: React.FC = () => {
         })}
 
         {filteredFrames.length === 0 && (
-          <div className="p-4 border rounded-md bg-gray-50 text-gray-700">
-            {t("frames.filters.noResults") || "No frames match the current filters."}
-          </div>
+          <div className="p-4 border rounded-md bg-gray-50 text-gray-700">{t("frames.filters.noResults") || "No frames match the current filters."}</div>
         )}
       </div>
-
 
       {/* ===== Create / Batch Create + Print ===== */}
       <div className="p-4 border rounded-md bg-gray-50 mt-6 mb-6">
@@ -739,10 +781,7 @@ const FramesView: React.FC = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center pt-2 border-t">
-            <button
-              onClick={() => printFrames(frames, "sticker")}
-              className="px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-800 font-medium"
-            >
+            <button onClick={() => printFrames(frames, "sticker")} className="px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-800 font-medium">
               {t("frames.createPrint.printAllStickers") || "Print Sticker Layout (all)"}
             </button>
 
@@ -756,9 +795,7 @@ const FramesView: React.FC = () => {
         </div>
       </div>
     </div>
-
   );
 };
 
 export default FramesView;
-

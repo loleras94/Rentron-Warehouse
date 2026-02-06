@@ -89,7 +89,8 @@
     "newTotalQuantity": "Νέα συνολική ποσότητα",
     "invalidQuantity": "Η ποσότητα πρέπει να είναι αριθμός ≥ 0",
     "quantityUpdated": "Η ποσότητα ενημερώθηκε ✅",
-    "quantityUpdateFailed": "Αποτυχία ενημέρωσης ποσότητας"
+    "quantityUpdateFailed": "Αποτυχία ενημέρωσης ποσότητας",
+    "sameSkuEntities": "Yλικά με τον ίδιο κωδικό:"
   },
   "search": {
     "title": "Αναζήτηση Υλικών",
@@ -310,6 +311,8 @@
     }
   },
   "machineOperator": {
+    "consumeMoreTitle": "Κατανάλωση Επιπλέον Υλικού;",
+    "consumeMoreMessage": "Θέλεις να καταναλώσεις άλλο υλικό;",
     "title": "Παρακολούθηση Φάσεων Παραγωγής",
     "scanPrompt": "Σαρώστε ένα QR φύλλου παραγωγής για να ξεκινήσετε.",
     "startScan": "Έναρξη Σάρωσης",
@@ -713,6 +716,7 @@
       "saving": "Αποθήκευση...",
       "printPdf": "Εκτύπωση PDF",
       "createPdfWithQr": "Δημιουργία PDF με QR",
+      "createPdfWithQrWithoutRemovingExtraPages": "Δημιουργία PDF με QR (χωρίς αφαίρεση επιπλέον σελίδων)",
       "working": "Επεξεργασία...",
       "printMaterialTicketsSticker": "Εκτύπωση ΔΕΛΤΙΑ ΥΛΙΚΩΝ (Sticker)",
       "printMaterialTicketsFull": "Εκτύπωση ΔΕΛΤΙΑ ΥΛΙΚΩΝ (Full)",
