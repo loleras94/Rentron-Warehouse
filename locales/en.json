@@ -204,7 +204,7 @@
       "parsing": "Parsing...",
       "found": "Found",
       "codes": "material codes",
-      "fillQtyHint": "Quantities were left empty — fill them below and click \"Save All\".",
+      "fillQtyHint": "If quantities were left empty — fill them below and click \"Save All\".",
       "noMaterialsFound": "No materials found in this PDF.",
       "noMaterialsInAll": "No material codes found in the selected PDFs.",
       "parseFailed": "Failed to parse PDF.",

@@ -23,7 +23,7 @@ import { mapDailyLog } from "../src/mapDailyLog";
    Real backend client – Express + SQLite
    ============================================================ */
 
-const API_URL = "https://api.rentron.gr";
+const API_URL = "https://apit.rentron.gr";
 
 
 /* ---------------- Generic helper ---------------- */
